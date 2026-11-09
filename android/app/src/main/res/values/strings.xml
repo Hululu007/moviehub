@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">观影中心</string>
+    <string name="nav_vod">影视</string>
+    <string name="nav_category">分类</string>
+    <string name="nav_live">直播</string>
+    <string name="nav_music">音乐</string>
+    <string name="search_vod_hint">搜索电影、电视剧、综艺、动漫…</string>
+    <string name="search_music_hint">搜索歌曲、歌手、专辑…</string>
+    <string name="all_sources">全部源</string>
+    <string name="douban_hot">豆瓣热榜</string>
+    <string name="continue_watching">继续观看</string>
+    <string name="recent_searches">最近搜索</string>
+    <string name="latest_updates">最新入库</string>
+    <string name="play_now">立即播放</string>
+    <string name="switch_source">切换片源</string>
+    <string name="switch_line">播放线路</string>
+    <string name="episodes_title">选集列表</string>
+</resources>

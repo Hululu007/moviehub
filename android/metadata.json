@@ -1,0 +1,6 @@
+{
+  "name": "观影中心",
+  "description": "个人本地影视聚合播放器与多平台音乐播放器（MovieHub 安卓版），支持15个影视采集源、豆瓣热榜、智能分类树、央视卫视直播与多源音乐歌词播放。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
