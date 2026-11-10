@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>观影中心 · 云端源站运维控制台</title>
+  <style>
+    :root {
+      --bg: #09090B;
+      --card: #121215;
+      --soft: #18181C;
+      --border: #27272A;
+      --text: #F4F4F6;
+      --dim: #8E8E98;
+      --green: #1ED760;
+      --amber: #F5A623;
+      --danger: #EF4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 28px 18px 80px;
+    }
+    .container { max-width: 1040px; margin: 0 auto; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .brand h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+    .brand p { font-size: 13px; color: var(--dim); margin-top: 4px; }
+    .endpoint-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 22px;
+      font-size: 13px;
+    }
+    .endpoint-bar code {
+      color: var(--green);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: rgba(30, 215, 96, 0.1);
+      padding: 3px 8px;
+      border-radius: 6px;
+      user-select: all;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .btn:hover { background: #242429; }
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+      font-weight: 600;
+    }
+    .btn-primary:hover { opacity: 0.9; background: var(--text); }
+    .btn-green {
+      background: var(--green);
+      color: #000;
+      border-color: var(--green);
+      font-weight: 600;
+    }
+    .btn-green:hover { opacity: 0.92; background: var(--green); }
+    .btn-danger {
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 22px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .card-header h2 { font-size: 16px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--dim); font-weight: 500; font-size: 12px; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-fast { background: rgba(30, 215, 96, 0.15); color: var(--green); }
+    .badge-mid { background: rgba(245, 166, 35, 0.15); color: var(--amber); }
+    .badge-err { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>观影中心 · 云端源站运维控制台</h1>
+        <p>远程维护影视 CMS 源、电视直播 M3U 与音乐源 — 安卓客户端启动自动同步，无需更新 APK</p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" onclick="testAllVodSources()">⚡ 一键检测全部片源速度</button>
+        <button class="btn" onclick="downloadJson()">⬇ 导出 sources.json</button>
+        <button class="btn btn-green" onclick="saveToServer()">☁️ 保存并发布更新</button>
+      </div>
+    </header>
+
+    <div class="endpoint-bar">
+      <span>安卓客户端在线同步地址：</span>
+      <code id="syncEndpointUrl">加载中…</code>
+      <span style="color:var(--dim); margin-left:auto;" id="versionLabel">版本: 1.2.0</span>
+    </div>
+
+    <!-- 1. 影视点播源管理 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>1. 影视点播源 (vodSources)</h2>
+          <p style="font-size:12px; color:var(--dim);">支持标准苹果 CMS V10 接口 (api.php/provide/vod/)，顺序越靠前优先级越高</p>
+        </div>
+        <button class="btn" onclick="addVodSource()">+ 新增影视源</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:52px;">启用</th>
+              <th style="width:110px;">源 ID</th>
+              <th style="width:120px;">显示名称</th>
+              <th>接口地址 (API URL)</th>
+              <th style="width:110px;">测速状态</th>
+              <th style="width:130px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="vodTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. 电视直播源管理 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>2. 电视直播源 (liveM3uUrl & liveChannels)</h2>
+          <p style="font-size:12px; color:var(--dim);">可配置远程 M3U 订阅链接或直接维护重点直播频道</p>
+        </div>
+        <button class="btn" onclick="addLiveChannel()">+ 新增直播频道</button>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px; color:var(--dim); display:block; margin-bottom:6px;">远程 M3U 直播源订阅地址 (liveM3uUrl)：</label>
+        <input type="text" id="liveM3uInput" placeholder="https://.../cn-tv-tested.m3u" />
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:150px;">频道名称</th>
+              <th style="width:130px;">所属分组</th>
+              <th>M3U8 直播流地址</th>
+              <th style="width:80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="liveTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. 音乐源管理 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>3. 音乐音源配置 (lxMusicScripts)</h2>
+          <p style="font-size:12px; color:var(--dim);">维护在线音源脚本，客户端音乐中心自动同步</p>
+        </div>
+        <button class="btn" onclick="addMusicScript()">+ 新增音源</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:52px;">启用</th>
+              <th style="width:130px;">音源 ID</th>
+              <th style="width:160px;">音源名称</th>
+              <th>脚本 URL</th>
+              <th style="width:80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="musicTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 4. GitHub 免服务器直推配置 (可选，适合 GitHub Pages / Cloudflare Pages 静态托管) -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>4. 部署与远程免服务器推送设置 (可选)</h2>
+          <p style="font-size:12px; color:var(--dim);">
+            若使用 <code>node server.js</code> 自建服务器，点击上方「保存并发布更新」即可直接写入服务器；<br/>
+            若将本页面托管在 GitHub Pages / Cloudflare Pages 等纯静态空间，填写下方 GitHub Token 即可在网页上直接推送更新到仓库的 <code>sources.json</code>。
+          </p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label style="font-size:12px; color:var(--dim);">自建服务端管理密钥 (ADMIN_KEY，未设置可留空)</label>
+          <input type="password" id="adminKeyInput" placeholder="对应 server.js 的 ADMIN_KEY 环境变量" />
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--dim);">GitHub 仓库 (格式: owner/repo)</label>
+          <input type="text" id="ghRepoInput" value="berse1kguts-pixel/moviehub" />
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--dim);">GitHub Personal Access Token (仅保存在你本地浏览器)</label>
+          <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxx (用于纯静态页面直推 GitHub)" />
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn btn-primary" onclick="pushToGitHubApi()" style="width:100%; justify-content:center;">
+            🚀 通过 GitHub API 直接远程更新仓库 sources.json
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+
+  <script>
+    let state = {
+      version: "1.2.0",
+      updatedAt: "",
+      vodSources: [],
+      liveM3uUrl: "",
+      liveChannels: [],
+      lxMusicScripts: []
+    };
+    let pingStatus = {};
+
+    function showToast(msg) {
+      const el = document.getElementById('toastBox');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    async function loadInitialConfig() {
+      const endpointEl = document.getElementById('syncEndpointUrl');
+      const base = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+      endpointEl.textContent = base + '/sources.json';
+
+      document.getElementById('ghTokenInput').value = localStorage.getItem('mh_gh_token') || '';
+      document.getElementById('ghRepoInput').value = localStorage.getItem('mh_gh_repo') || 'berse1kguts-pixel/moviehub';
+
+      try {
+        const res = await fetch('./sources.json?t=' + Date.now());
+        if (res.ok) {
+          state = await res.json();
+          renderAll();
+          return;
+        }
+      } catch (_) {}
+      renderAll();
+    }
+
+    function renderAll() {
+      document.getElementById('versionLabel').textContent = `版本: ${state.version || '1.0.0'} · 更新于: ${state.updatedAt || '刚刚'}`;
+      document.getElementById('liveM3uInput').value = state.liveM3uUrl || '';
+
+      // Render VOD
+      const vodBody = document.getElementById('vodTableBody');
+      vodBody.innerHTML = '';
+      (state.vodSources || []).forEach((s, i) => {
+        const p = pingStatus[s.id];
+        let badgeHtml = '<span style="color:var(--dim);font-size:12px;">未测速</span>';
+        if (p === 'testing') badgeHtml = '<span class="badge badge-mid">测速中…</span>';
+        else if (p && p.ok) {
+          const cls = p.latencyMs < 900 ? 'badge-fast' : 'badge-mid';
+          badgeHtml = `<span class="badge ${cls}">⚡ ${p.latencyMs}ms</span>`;
+        } else if (p && !p.ok) {
+          badgeHtml = `<span class="badge badge-err">异常</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="state.vodSources[${i}].enabled = this.checked" /></td>
+          <td><input type="text" value="${s.id || ''}" onchange="state.vodSources[${i}].id = this.value.trim()" /></td>
+          <td><input type="text" value="${s.name || ''}" onchange="state.vodSources[${i}].name = this.value.trim()" /></td>
+          <td><input type="text" value="${s.api || ''}" onchange="state.vodSources[${i}].api = this.value.trim()" /></td>
+          <td>${badgeHtml}</td>
+          <td>
+            <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveVod(${i}, -1)">↑</button>
+            <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveVod(${i}, 1)">↓</button>
+            <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="state.vodSources.splice(${i},1);renderAll();">删</button>
+          </td>
+        `;
+        vodBody.appendChild(tr);
+      });
+
+      // Render Live
+      const liveBody = document.getElementById('liveTableBody');
+      liveBody.innerHTML = '';
+      (state.liveChannels || []).forEach((c, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" value="${c.name || ''}" onchange="state.liveChannels[${i}].name = this.value.trim()" /></td>
+          <td><input type="text" value="${c.group || ''}" onchange="state.liveChannels[${i}].group = this.value.trim()" /></td>
+          <td><input type="text" value="${c.url || ''}" onchange="state.liveChannels[${i}].url = this.value.trim()" /></td>
+          <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="state.liveChannels.splice(${i},1);renderAll();">删除</button></td>
+        `;
+        liveBody.appendChild(tr);
+      });
+
+      // Render Music
+      const musicBody = document.getElementById('musicTableBody');
+      musicBody.innerHTML = '';
+      (state.lxMusicScripts || []).forEach((m, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" ${m.enabled !== false ? 'checked' : ''} onchange="state.lxMusicScripts[${i}].enabled = this.checked" /></td>
+          <td><input type="text" value="${m.id || ''}" onchange="state.lxMusicScripts[${i}].id = this.value.trim()" /></td>
+          <td><input type="text" value="${m.name || ''}" onchange="state.lxMusicScripts[${i}].name = this.value.trim()" /></td>
+          <td><input type="text" value="${m.url || ''}" onchange="state.lxMusicScripts[${i}].url = this.value.trim()" /></td>
+          <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="state.lxMusicScripts.splice(${i},1);renderAll();">删除</button></td>
+        `;
+        musicBody.appendChild(tr);
+      });
+    }
+
+    function moveVod(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= state.vodSources.length) return;
+      const tmp = state.vodSources[idx];
+      state.vodSources[idx] = state.vodSources[target];
+      state.vodSources[target] = tmp;
+      renderAll();
+    }
+
+    function addVodSource() {
+      state.vodSources = state.vodSources || [];
+      state.vodSources.push({ id: 'new_' + Date.now().toString().slice(-4), name: '新片源', api: 'https://', enabled: true });
+      renderAll();
+    }
+
+    function addLiveChannel() {
+      state.liveChannels = state.liveChannels || [];
+      state.liveChannels.push({ id: 'live_' + Date.now().toString().slice(-4), name: '新频道', group: '卫视频道', url: 'https://' });
+      renderAll();
+    }
+
+    function addMusicScript() {
+      state.lxMusicScripts = state.lxMusicScripts || [];
+      state.lxMusicScripts.push({ id: 'lx_' + Date.now().toString().slice(-4), name: '新音源', url: 'https://', enabled: true });
+      renderAll();
+    }
+
+    function syncInputsToState() {
+      state.liveM3uUrl = document.getElementById('liveM3uInput').value.trim();
+      state.updatedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    async function testAllVodSources() {
+      syncInputsToState();
+      const list = state.vodSources || [];
+      list.forEach(s => { pingStatus[s.id] = 'testing'; });
+      renderAll();
+
+      await Promise.all(list.map(async (s) => {
+        try {
+          const r = await fetch(`/api/probe?url=${encodeURIComponent(s.api)}`);
+          if (r.ok) {
+            pingStatus[s.id] = await r.json();
+            return;
+          }
+        } catch (_) {}
+        // Browser fallback timing probe
+        const t0 = performance.now();
+        try {
+          await fetch(s.api + '?ac=list&pg=1', { mode: 'no-cors' });
+          pingStatus[s.id] = { ok: true, latencyMs: Math.round(performance.now() - t0) };
+        } catch (_) {
+          pingStatus[s.id] = { ok: false, latencyMs: 9999 };
+        }
+      }));
+
+      // Sort fastest first
+      state.vodSources.sort((a, b) => {
+        const la = (pingStatus[a.id] && pingStatus[a.id].ok) ? pingStatus[a.id].latencyMs : 99999;
+        const lb = (pingStatus[b.id] && pingStatus[b.id].ok) ? pingStatus[b.id].latencyMs : 99999;
+        return la - lb;
+      });
+      renderAll();
+      showToast('⚡ 已完成测速并自动将最快片源排在最前');
+    }
+
+    function downloadJson() {
+      syncInputsToState();
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sources.json';
+      a.click();
+      showToast('已导出 sources.json');
+    }
+
+    async function saveToServer() {
+      syncInputsToState();
+      const adminKey = document.getElementById('adminKeyInput').value.trim();
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Key': adminKey
+          },
+          body: JSON.stringify(state, null, 2)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          renderAll();
+          showToast('✅ 已保存并发布至源站服务器，安卓端打开即同步！');
+          return;
+        }
+        showToast('保存失败: ' + (data.error || res.statusText));
+      } catch (e) {
+        showToast('当前为纯静态环境，可使用下方 GitHub 直推或点击导出 sources.json');
+      }
+    }
+
+    async function pushToGitHubApi() {
+      syncInputsToState();
+      const repo = document.getElementById('ghRepoInput').value.trim();
+      const token = document.getElementById('ghTokenInput').value.trim();
+      if (!repo || !token) {
+        showToast('请填写 GitHub 仓库与 Personal Access Token');
+        return;
+      }
+      localStorage.setItem('mh_gh_repo', repo);
+      localStorage.setItem('mh_gh_token', token);
+
+      const apiUrl = `https://api.github.com/repos/${repo}/contents/sources.json`;
+      try {
+        showToast('正在推送至 GitHub…');
+        let sha = undefined;
+        const getRes = await fetch(apiUrl, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (getRes.ok) {
+          const existing = await getRes.json();
+          sha = existing.sha;
+        }
+        const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2))));
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `chore(sources): update remote sources.json (${state.updatedAt})`,
+            content: contentB64,
+            sha
+          })
+        });
+        if (putRes.ok) {
+          renderAll();
+          showToast('🚀 已成功推送到 GitHub 仓库 sources.json！');
+        } else {
+          const err = await putRes.json();
+          showToast('GitHub 推送失败: ' + (err.message || putRes.status));
+        }
+      } catch (e) {
+        showToast('网络错误: ' + e.message);
+      }
+    }
+
+    loadInitialConfig();
+  </script>
+</body>
+</html>

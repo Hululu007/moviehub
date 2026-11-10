@@ -32,7 +32,8 @@ data class VodSourceMatch(
     val area: String = "",
     val actor: String = "",
     val director: String = "",
-    val typeName: String = ""
+    val typeName: String = "",
+    val latencyMs: Long = 0L
 )
 
 data class VodItem(
@@ -128,7 +129,8 @@ data class CategoryTree(
                         )
                     )
                 }
-                MovieHubData.buildCategoryTree(srcId, srcName, types, done = true)
+                val cleanTypes = types.filterNot { MovieHubData.isBlockedCategoryOrTitle(it.name) }
+                MovieHubData.buildCategoryTree(srcId, srcName, cleanTypes, done = true)
             } catch (e: Exception) {
                 null
             }
@@ -225,8 +227,83 @@ object MovieHubData {
 
     val PREFERRED_BROWSE_SOURCE_IDS = listOf("bfzy", "ffzy", "lzzy", "snzy", "ikunzy", "360zy")
 
-    val DOUBAN_MOVIE_TAGS = listOf("热门", "最新", "豆瓣高分", "冷门佳片", "经典")
-    val DOUBAN_TV_TAGS = listOf("热门", "国产剧", "美剧", "日剧", "韩剧", "日本动画", "综艺")
+    val DOUBAN_MOVIE_TAGS = listOf("热门", "最新", "豆瓣高分", "冷门佳片", "经典", "科幻", "动作", "悬疑", "喜剧", "爱情")
+    val DOUBAN_TV_TAGS = listOf("热门", "国产剧", "美剧", "英剧", "韩剧", "日剧", "港剧", "悬疑剧")
+    val DOUBAN_ANIME_TAGS = listOf("日本动画", "国产动画", "剧场版", "新番", "经典动画", "热血", "奇幻")
+    val DOUBAN_DOC_TAGS = listOf("纪录片", "自然", "历史", "人文", "BBC", "美食", "科技", "社会")
+    val DOUBAN_SHORT_TAGS = listOf("短剧", "爽剧", "逆袭", "甜宠", "重生", "都市", "古装", "悬疑")
+
+    data class VodChannelSection(
+        val key: String,
+        val title: String,
+        val subtitle: String,
+        val tags: List<String>
+    )
+
+    val VOD_MAJOR_CHANNELS = listOf(
+        VodChannelSection("movie", "电影", "院线大片 · 高分佳作", DOUBAN_MOVIE_TAGS),
+        VodChannelSection("tv", "电视剧", "热播剧集 · 全球同步", DOUBAN_TV_TAGS),
+        VodChannelSection("anime", "动漫", "新番连载 · 动画剧场", DOUBAN_ANIME_TAGS),
+        VodChannelSection("doc", "纪录片", "自然人文 · 真实纪实", DOUBAN_DOC_TAGS),
+        VodChannelSection("short", "短剧", "竖屏爽剧 · 极速连播", DOUBAN_SHORT_TAGS)
+    )
+
+    private val BLOCKED_CATEGORY_KEYWORDS = listOf(
+        "福利", "伦理", "写真", "美女", "热舞", "街拍", "主播", "三级",
+        "理论", "情色", "成人", "里番", "同性", "激情", "有码", "无码",
+        "中文字幕", "日韩精品", "国产精品", "欧美精品", "自拍", "偷拍",
+        "诱惑", "性感", "大尺度", "18+", "禁片", "限制级", "伦理片", "福利片", "福利姬"
+    )
+
+    /**
+     * Strictly filters out "福利" / adult / NSFW categories and items.
+     */
+    fun isBlockedCategoryOrTitle(typeName: String?, title: String? = null): Boolean {
+        val t = typeName?.trim()?.lowercase().orEmpty()
+        val n = title?.trim()?.lowercase().orEmpty()
+        if (t.isEmpty() && n.isEmpty()) return false
+        return BLOCKED_CATEGORY_KEYWORDS.any { kw ->
+            t.contains(kw) || n.contains(kw)
+        }
+    }
+
+    /**
+     * Maps any CMS category name (`type_name`) into one of the 5 dedicated channels:
+     * "movie" (电影), "tv" (电视剧), "anime" (动漫), "doc" (纪录片), "short" (短剧), or "other".
+     */
+    fun classifyVodChannel(typeName: String?, title: String? = null): String {
+        val text = "${typeName.orEmpty()} ${title.orEmpty()}".lowercase()
+        return when {
+            text.contains("短剧") || text.contains("微短剧") || text.contains("爽剧") ||
+                text.contains("竖屏") || text.contains("短片") || text.contains("skit") -> "short"
+            text.contains("纪录") || text.contains("记录") || text.contains("纪实") ||
+                text.contains("科教") || text.contains("自然") || text.contains("bbc") -> "doc"
+            text.contains("动漫") || text.contains("动画") || text.contains("番剧") ||
+                text.contains("新番") || text.contains("国漫") || text.contains("日漫") -> "anime"
+            text.contains("剧") || text.contains("连续") || text.contains("电视") ||
+                text.contains("美剧") || text.contains("韩剧") || text.contains("日剧") ||
+                text.contains("国产剧") || text.contains("欧美剧") || text.contains("港剧") ||
+                text.contains("台剧") || text.contains("泰剧") || text.contains("海外剧") -> "tv"
+            text.contains("电影") || text.contains("片") || text.contains("动作") ||
+                text.contains("喜剧") || text.contains("爱情") || text.contains("科幻") ||
+                text.contains("恐怖") || text.contains("剧情") || text.contains("战争") ||
+                text.contains("悬疑") || text.contains("犯罪") || text.contains("奇幻") ||
+                text.contains("冒险") || text.contains("武侠") || text.contains("古装") -> "movie"
+            else -> "other"
+        }
+    }
+
+    fun isLikelyPortraitShortDrama(
+        typeName: String?,
+        title: String? = null,
+        remarks: String? = null
+    ): Boolean {
+        val text = "${typeName.orEmpty()} ${title.orEmpty()} ${remarks.orEmpty()}".lowercase()
+        return text.contains("短剧") ||
+            text.contains("微短剧") ||
+            text.contains("爽剧") ||
+            text.contains("竖屏")
+    }
 
     val CATEGORY_YEARS = listOf(
         "", "2026", "2025", "2024", "2023", "2022", "2021",
@@ -387,19 +464,20 @@ object MovieHubData {
         }
     }
 
-    /** Ported from moviehub/server.js buildTree(types) */
+    /** Ported from moviehub/server.js buildTree(types) — with 福利/NSFW stripped out */
     fun buildCategoryTree(
         srcId: String,
         srcName: String,
         types: List<CategoryNode>,
-        version: Int = 1,
+        version: Int = 2,
         done: Boolean = true
     ): CategoryTree {
-        val byPid = types.groupBy { it.pid }
+        val cleanTypes = types.filterNot { isBlockedCategoryOrTitle(it.name) }
+        val byPid = cleanTypes.groupBy { it.pid }
         val nameOf = { pid: Int ->
-            types.find { it.id == pid }?.name ?: when (pid) {
+            cleanTypes.find { it.id == pid }?.name ?: when (pid) {
                 1 -> "电影"
-                2 -> "连续剧"
+                2 -> "电视剧"
                 3 -> "综艺"
                 4 -> "动漫"
                 else -> "分组$pid"
@@ -407,15 +485,24 @@ object MovieHubData {
         }
         val groups = byPid.entries
             .filter { it.key != 0 }
-            .map { (pid, list) ->
-                CategoryGroup(
-                    pid = pid,
-                    name = nameOf(pid),
-                    items = list.sortedByDescending { it.count }
-                )
+            .mapNotNull { (pid, list) ->
+                val groupName = nameOf(pid)
+                if (isBlockedCategoryOrTitle(groupName)) {
+                    null
+                } else {
+                    val cleanItems = list.filterNot { isBlockedCategoryOrTitle(it.name) }
+                        .sortedByDescending { it.count }
+                    if (cleanItems.isEmpty()) null
+                    else CategoryGroup(
+                        pid = pid,
+                        name = groupName,
+                        items = cleanItems
+                    )
+                }
             }
             .sortedByDescending { it.items.size }
         val top = (byPid[0] ?: emptyList())
+            .filterNot { isBlockedCategoryOrTitle(it.name) }
             .filter { node -> groups.none { it.pid == node.id } }
             .sortedByDescending { it.count }
         return CategoryTree(
@@ -423,7 +510,7 @@ object MovieHubData {
             srcName = srcName,
             version = version,
             done = done,
-            types = types,
+            types = cleanTypes,
             groups = groups,
             top = top
         )

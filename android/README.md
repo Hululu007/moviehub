@@ -23,3 +23,14 @@
    - 推送完成后，仓库内置的 GitHub Actions (`.github/workflows/build-apk.yml`) 会自动运行，编译生成 `MovieHub-v1.0-debug.apk` 并自动发布到你仓库右侧的 **Releases** 页面。
 2. **在 AI Studio 中直接下载 APK**：
    - 点击 AI Studio 右上角菜单（设置 / 导出图标），选择 **Download APK / Generate APK** 即可直接下载安装包。
+
+## 仓库结构说明
+
+- `android/`：Android 客户端（Jetpack Compose），CI 以 `./android` 为工作目录构建
+- `sources.json`：仓库根级远程源配置，客户端启动时自动拉取（GitHub Raw / jsDelivr / 镜像）
+- `version.json`：在线检查更新清单，客户端读取 `versionName` / `versionCode` / `apkUrl`
+- `source-hub/`：零依赖 Node 源站运维后台，同时通过 GitHub Pages 部署为在线源站
+- `backend-java/`：Spring Boot + MySQL 源站管理服务（可选自建）
+- `moviehub/`：Electron 桌面版
+
+修改 Android 代码后推送 `main`，`.github/workflows/build-apk.yml` 会自动构建并发布 Release APK。

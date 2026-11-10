@@ -175,7 +175,7 @@ object LocalMediaProxyServer {
                     }
                 }
 
-                // Stream binary segment (.ts / .mp4 / key) directly
+                // Stream binary segment (.ts / .mp4 / key) directly with 64KB buffer
                 val contentLen = body.contentLength()
                 val headers = buildString {
                     append("HTTP/1.1 ${resp.code} OK\r\n")
@@ -185,7 +185,7 @@ object LocalMediaProxyServer {
                     append("Connection: close\r\n\r\n")
                 }
                 out.write(headers.toByteArray(Charsets.UTF_8))
-                body.byteStream().copyTo(out, 16 * 1024)
+                body.byteStream().copyTo(out, 64 * 1024)
                 out.flush()
             }
         } catch (e: Exception) {
@@ -210,7 +210,12 @@ object LocalMediaProxyServer {
                 }
             } else {
                 val abs = resolveAbsoluteUrl(baseUri, trimmed)
-                getVideoProxyUrl(abs, refFinal)
+                // Only proxy nested .m3u8 manifests; let .ts/.mp4 segments stream directly from CDN for maximum throughput
+                if (abs.substringBefore("?").endsWith(".m3u8", ignoreCase = true)) {
+                    getVideoProxyUrl(abs, refFinal)
+                } else {
+                    abs
+                }
             }
         }.joinToString("\n")
     }

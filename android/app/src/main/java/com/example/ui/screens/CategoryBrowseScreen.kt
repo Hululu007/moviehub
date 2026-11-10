@@ -147,7 +147,7 @@ fun CategoryBrowseScreen(
                 }
             }
 
-            // Category Tree Pills
+            // 4 Dedicated Primary Channel Blocks: 电影 · 电视剧 · 动漫 · 纪录片 (福利已彻底删除)
             val tree = state.tree
             if (state.isLoadingTree) {
                 Row(
@@ -158,18 +158,88 @@ fun CategoryBrowseScreen(
                     Text("正在发现分类树…", style = MaterialTheme.typography.labelMedium, color = MhTextDim)
                 }
             } else if (tree != null) {
-                val allNodes = buildList {
-                    tree.groups.forEach { addAll(it.items) }
-                    addAll(tree.top)
+                val allNodes = remember(tree) {
+                    buildList {
+                        tree.groups.forEach { addAll(it.items) }
+                        addAll(tree.top)
+                    }
+                        .filterNot { MovieHubData.isBlockedCategoryOrTitle(it.name) }
+                        .distinctBy { it.id }
                 }
-                if (allNodes.isNotEmpty()) {
+
+                val currentNodeChannel = remember(state.selectedTypeName) {
+                    val c = MovieHubData.classifyVodChannel(state.selectedTypeName)
+                    if (c in listOf("movie", "tv", "anime", "doc", "short")) c else "movie"
+                }
+                var activeMajorChannel by remember(currentNodeChannel) {
+                    mutableStateOf(currentNodeChannel)
+                }
+
+                // Row 1: 5 Dedicated Major Channel Blocks (电影 / 剧集 / 动漫 / 纪录 / 短剧)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val channelTabs = listOf(
+                        "movie" to "🎬 电影",
+                        "tv" to "📺 剧集",
+                        "anime" to "🎨 动漫",
+                        "doc" to "🌍 纪录",
+                        "short" to "📱 短剧"
+                    )
+                    channelTabs.forEach { (chKey, chLabel) ->
+                        val selected = activeMajorChannel == chKey
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) MhText else MhBgSoft)
+                                .border(
+                                    0.5.dp,
+                                    if (selected) MhText else MhBorder,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable {
+                                    activeMajorChannel = chKey
+                                    val channelNodes = allNodes.filter {
+                                        MovieHubData.classifyVodChannel(it.name) == chKey
+                                    }
+                                    val firstMatch = channelNodes.firstOrNull() ?: allNodes.firstOrNull()
+                                    if (firstMatch != null) {
+                                        onSelectType(firstMatch.id.toString(), firstMatch.name)
+                                    }
+                                }
+                                .padding(vertical = 8.dp)
+                                .testTag("category_channel_$chKey"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = chLabel,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                                ),
+                                color = if (selected) MhBg else MhText,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                // Row 2: Sub-category Pills within the selected Major Channel
+                val filteredNodes = remember(allNodes, activeMajorChannel) {
+                    val matched = allNodes.filter { MovieHubData.classifyVodChannel(it.name) == activeMajorChannel }
+                    matched.ifEmpty { allNodes }
+                }
+
+                if (filteredNodes.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        allNodes.forEach { node ->
+                        filteredNodes.forEach { node ->
                             MinimalPill(
                                 text = node.name,
                                 selected = state.selectedTypeId == node.id.toString(),

@@ -17,6 +17,13 @@ out/
 build/
 *.blockmap
 
+# Java 后端构建产物
+backend-java/target/
+*.class
+
+# AI Studio 导出临时媒体占位（不参与构建）
+.aistudio/
+
 # 系统杂物
 Thumbs.db
 desktop.ini

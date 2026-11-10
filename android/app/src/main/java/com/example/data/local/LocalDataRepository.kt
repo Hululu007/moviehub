@@ -10,6 +10,10 @@ class LocalDataRepository(private val dao: MovieHubDao) {
 
     val favoriteVods: Flow<List<FavoriteVodEntity>> = dao.getFavoriteVods()
 
+    val diagnosticLogs: Flow<List<SourceDiagnosticLogEntity>> = dao.getDiagnosticLogs()
+
+    val videoDownloads: Flow<List<VideoDownloadEntity>> = dao.getVideoDownloads()
+
     val recentVodSearches: Flow<List<String>> = dao.getRecentSearches("vod")
         .map { list -> list.map { it.keyword } }
 
@@ -105,5 +109,61 @@ class LocalDataRepository(private val dao: MovieHubDao) {
                 updatedAt = System.currentTimeMillis()
             )
         )
+    }
+
+    suspend fun getRemoteSourceBundleJson(): String? {
+        return dao.getCategoryCache("__remote_sources_bundle__")?.treeJson
+    }
+
+    suspend fun saveRemoteSourceBundleJson(rawJson: String) {
+        dao.saveCategoryCache(
+            CategoryCacheEntity(
+                srcId = "__remote_sources_bundle__",
+                treeJson = rawJson,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun getRemoteSourceUrl(): String? {
+        return dao.getCategoryCache("__remote_sources_url__")?.treeJson
+    }
+
+    suspend fun saveRemoteSourceUrl(url: String) {
+        dao.saveCategoryCache(
+            CategoryCacheEntity(
+                srcId = "__remote_sources_url__",
+                treeJson = url.trim(),
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun insertDiagnosticLog(log: SourceDiagnosticLogEntity) {
+        dao.insertDiagnosticLog(log)
+    }
+
+    suspend fun insertDiagnosticLogs(logs: List<SourceDiagnosticLogEntity>) {
+        dao.insertDiagnosticLogs(logs)
+    }
+
+    suspend fun clearDiagnosticLogs() {
+        dao.clearDiagnosticLogs()
+    }
+
+    suspend fun getVideoDownloadById(taskId: String): VideoDownloadEntity? {
+        return dao.getVideoDownloadById(taskId)
+    }
+
+    suspend fun upsertVideoDownload(task: VideoDownloadEntity) {
+        dao.upsertVideoDownload(task)
+    }
+
+    suspend fun deleteVideoDownload(taskId: String) {
+        dao.deleteVideoDownload(taskId)
+    }
+
+    suspend fun clearAllVideoDownloads() {
+        dao.clearAllVideoDownloads()
     }
 }

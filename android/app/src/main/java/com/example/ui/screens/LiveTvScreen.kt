@@ -78,6 +78,12 @@ fun LiveTvScreen(
         if (selectedGroup == "全部") channels else channels.filter { it.group == selectedGroup }
     }
 
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            onClosePlayer()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()

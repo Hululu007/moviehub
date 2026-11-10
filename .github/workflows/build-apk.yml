@@ -3,6 +3,10 @@ name: Build & Release Android APK
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ]
+    paths-ignore:
+      - 'moviehub/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -20,6 +24,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read version from version.json
+        id: ver
+        working-directory: .
+        run: |
+          NAME=$(jq -r '.versionName // "0.0.0"' version.json 2>/dev/null || echo "0.0.0")
+          CODE=$(jq -r '.versionCode // 0' version.json 2>/dev/null || echo "0")
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Detected versionName=$NAME versionCode=$CODE"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -28,11 +42,6 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
 
       - name: Prepare .env and debug.keystore
         run: |
@@ -52,20 +61,36 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK for Release
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/MovieHub-v1.0-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/moviehub-release.apk
+
+      - name: Upload APK to Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieHub-APK
+          path: android/app/build/outputs/apk/debug/moviehub-release.apk
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: "观影中心 (MovieHub) Android v1.0.${{ github.run_number }}"
+          tag_name: v${{ steps.ver.outputs.name }}
+          name: "观影中心 (MovieHub) v${{ steps.ver.outputs.name }}"
           body: |
             ### 观影中心 (MovieHub) Android 客户端自动构建版
-            - 影视点播、分类片库、电视直播与音乐中心
+
+            ${{ github.event.head_commit.message }}
+
+            - **专属五大频道**：电影、电视剧、动漫、纪录片、短剧并发秒开
+            - **播放器升级**：自动/4K/1080P/720P/480P 清晰度切换、直屏短剧竖屏全屏自适应、右滑极速返回
+            - **影视点播**：豆瓣热门海报流、多源并发检索、影院级手势播放器与我的片单收藏
+            - **分类片库**：多源分类筛选、年份与排序切换
+            - **电视直播**：央视 / 卫视 / 国际频道 M3U8 直播与自定义频道源
+            - **音乐中心**：五大音乐平台多通道搜索、跨源兜底播放、同步滚动歌词
+            - **在线更新**：内置检查更新与手机端一键直推 GitHub 云端同步中心
           files: |
-            android/app/build/outputs/apk/debug/MovieHub-v1.0-debug.apk
+            android/app/build/outputs/apk/debug/moviehub-release.apk
           prerelease: false

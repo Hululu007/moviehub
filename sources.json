@@ -1,0 +1,88 @@
+{
+  "version": "1.2.0",
+  "updatedAt": "2026-11-09",
+  "description": "观影中心 (MovieHub) 远程云端源配置文件 — 修改此文件后客户端启动自动同步，无需更新 APK",
+  "vodSources": [
+    {
+      "id": "ffzy",
+      "name": "非凡",
+      "api": "http://ffzy5.tv/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "bfzy",
+      "name": "暴风",
+      "api": "https://bfzyapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "lzi",
+      "name": "量子",
+      "api": "https://cj.lziapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "tyyszy",
+      "name": "天涯",
+      "api": "https://tyyszy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "zy360",
+      "name": "360",
+      "api": "https://360zy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "wolong",
+      "name": "卧龙",
+      "api": "https://wolongzyw.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "jisu",
+      "name": "极速",
+      "api": "https://jszyapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "dbzy",
+      "name": "豆瓣源",
+      "api": "https://dbzy.tv/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "mozhuazy",
+      "name": "魔爪",
+      "api": "https://mozhuazy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "mdzy",
+      "name": "魔都",
+      "api": "https://www.mdzyapi.com/api.php/provide/vod/",
+      "enabled": true
+    }
+  ],
+  "liveM3uUrl": "https://raw.githubusercontent.com/berse1kguts-pixel/moviehub/main/cn-tv-tested.m3u",
+  "lxMusicScripts": [
+    {
+      "id": "huibq",
+      "name": "Huibq 音源",
+      "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/render_api.js",
+      "enabled": true
+    },
+    {
+      "id": "lx_official_mirror",
+      "name": "洛雪聚合镜像源",
+      "url": "https://fastly.jsdelivr.net/gh/pdone/lx-music-source/sixyin/latest.js",
+      "enabled": true
+    },
+    {
+      "id": "ikun_source",
+      "name": "iKun 公益无损源",
+      "url": "https://fastly.jsdelivr.net/gh/ikun0014/lx-music-source/dist/lx-music-source.js",
+      "enabled": true
+    }
+  ]
+}

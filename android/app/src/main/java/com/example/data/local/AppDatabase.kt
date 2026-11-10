@@ -75,6 +75,44 @@ data class FavoriteVodEntity(
     val addedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "source_diagnostic_logs")
+data class SourceDiagnosticLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val sourceId: String,
+    val sourceName: String,
+    val channelType: String = "VOD", // "VOD", "LIVE", "MUSIC", "SYNC"
+    val apiUrl: String,
+    val status: String, // "HEALTHY", "DEGRADED", "OFFLINE"
+    val httpCode: Int = 0,
+    val apiLatencyMs: Long = 0L,
+    val streamLatencyMs: Long = 0L,
+    val vodTotalCount: Int = 0,
+    val detailMessage: String = "",
+    val checkedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "video_downloads")
+data class VideoDownloadEntity(
+    @PrimaryKey val taskId: String,
+    val vodName: String,
+    val vodPic: String,
+    val sourceId: String,
+    val sourceName: String,
+    val vodId: String,
+    val epIndex: Int,
+    val epTitle: String,
+    val remoteUrl: String,
+    val localFilePath: String = "",
+    val status: String = "QUEUED", // "QUEUED", "DOWNLOADING", "PAUSED", "COMPLETED", "FAILED"
+    val progressPercent: Int = 0,
+    val downloadedSegments: Int = 0,
+    val totalSegments: Int = 0,
+    val downloadedBytes: Long = 0L,
+    val speedBytesPerSec: Long = 0L,
+    val errorMessage: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface MovieHubDao {
     @Query("SELECT * FROM watch_history ORDER BY updatedAt DESC LIMIT 20")
@@ -124,6 +162,33 @@ interface MovieHubDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveCategoryCache(cache: CategoryCacheEntity)
+
+    @Query("SELECT * FROM source_diagnostic_logs ORDER BY checkedAt DESC LIMIT 150")
+    fun getDiagnosticLogs(): Flow<List<SourceDiagnosticLogEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiagnosticLog(log: SourceDiagnosticLogEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiagnosticLogs(logs: List<SourceDiagnosticLogEntity>)
+
+    @Query("DELETE FROM source_diagnostic_logs")
+    suspend fun clearDiagnosticLogs()
+
+    @Query("SELECT * FROM video_downloads ORDER BY createdAt DESC")
+    fun getVideoDownloads(): Flow<List<VideoDownloadEntity>>
+
+    @Query("SELECT * FROM video_downloads WHERE taskId = :taskId LIMIT 1")
+    suspend fun getVideoDownloadById(taskId: String): VideoDownloadEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertVideoDownload(task: VideoDownloadEntity)
+
+    @Query("DELETE FROM video_downloads WHERE taskId = :taskId")
+    suspend fun deleteVideoDownload(taskId: String)
+
+    @Query("DELETE FROM video_downloads")
+    suspend fun clearAllVideoDownloads()
 }
 
 @Database(
@@ -132,9 +197,11 @@ interface MovieHubDao {
         FavoriteVodEntity::class,
         PlaylistTrackEntity::class,
         RecentSearchEntity::class,
-        CategoryCacheEntity::class
+        CategoryCacheEntity::class,
+        SourceDiagnosticLogEntity::class,
+        VideoDownloadEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

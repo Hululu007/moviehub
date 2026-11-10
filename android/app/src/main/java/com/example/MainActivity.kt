@@ -55,10 +55,13 @@ import com.example.ui.MainTab
 import com.example.ui.MovieHubViewModel
 import com.example.ui.components.FullLyricsModalSheet
 import com.example.ui.components.PersistentMusicBottomBar
+import com.example.ui.screens.AppUpdateCenterModalSheet
 import com.example.ui.screens.CategoryBrowseScreen
 import com.example.ui.screens.HomeVodScreen
 import com.example.ui.screens.LiveTvScreen
 import com.example.ui.screens.MusicCenterScreen
+import com.example.ui.screens.SourceDiagnosticsModalSheet
+import com.example.ui.screens.VideoDownloadCenterModalSheet
 import com.example.ui.screens.VodDetailPlayerScreen
 import com.example.ui.theme.MhBg
 import com.example.ui.theme.MhBorder
@@ -91,12 +94,14 @@ private data class NavTabItem(
 fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
     val vodSources by viewModel.vodSources.collectAsStateWithLifecycle()
+    val remoteSyncState by viewModel.remoteSyncState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedSearchSrcId by viewModel.selectedSearchSrcId.collectAsStateWithLifecycle()
 
     val doubanType by viewModel.doubanType.collectAsStateWithLifecycle()
     val doubanTag by viewModel.doubanTag.collectAsStateWithLifecycle()
     val doubanItems by viewModel.doubanItems.collectAsStateWithLifecycle()
+    val homeChannelBlocks by viewModel.homeChannelBlocks.collectAsStateWithLifecycle()
     val isLoadingDouban by viewModel.isLoadingDouban.collectAsStateWithLifecycle()
     val doubanError by viewModel.doubanError.collectAsStateWithLifecycle()
 
@@ -123,6 +128,21 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
     val musicState by viewModel.musicState.collectAsStateWithLifecycle()
     val playlistTracks by viewModel.playlistTracks.collectAsStateWithLifecycle()
     val toastMessage by viewModel.toastMessage.collectAsStateWithLifecycle()
+
+    val diagnosticLogs by viewModel.diagnosticLogs.collectAsStateWithLifecycle()
+    val videoDownloads by viewModel.videoDownloads.collectAsStateWithLifecycle()
+    val showDiagnosticsSheet by viewModel.showDiagnosticsSheet.collectAsStateWithLifecycle()
+    val showDownloadCenterSheet by viewModel.showDownloadCenterSheet.collectAsStateWithLifecycle()
+    val showUpdateSheet by viewModel.showUpdateSheet.collectAsStateWithLifecycle()
+    val appUpdateResult by viewModel.appUpdateResult.collectAsStateWithLifecycle()
+    val isCheckingUpdate by viewModel.isCheckingUpdate.collectAsStateWithLifecycle()
+    val isPublishingToGitHub by viewModel.isPublishingToGitHub.collectAsStateWithLifecycle()
+    val healthResults by viewModel.healthResults.collectAsStateWithLifecycle()
+    val isRunningDiagnostics by viewModel.isRunningDiagnostics.collectAsStateWithLifecycle()
+    val probeInspection by viewModel.probeInspection.collectAsStateWithLifecycle()
+    val isProbingCustomSource by viewModel.isProbingCustomSource.collectAsStateWithLifecycle()
+    val crossChannelQueryResult by viewModel.crossChannelQueryResult.collectAsStateWithLifecycle()
+    val isCrossChannelSearching by viewModel.isCrossChannelSearching.collectAsStateWithLifecycle()
 
     val navItems = listOf(
         NavTabItem(MainTab.HOME, "影视", Icons.Filled.Movie, Icons.Outlined.Movie, "nav_tab_vod"),
@@ -158,6 +178,11 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
                 isFavorite = isVodFavorite,
                 onToggleFavorite = { viewModel.toggleFavoriteCurrentVod() },
                 onAggregateSources = { viewModel.aggregateAllSourcesForCurrentVod(silent = false) },
+                onSpeedTestSources = { viewModel.autoSwitchToFastestSource() },
+                videoDownloads = videoDownloads,
+                onDownloadEpisodes = { viewModel.downloadCurrentVodEpisodes(it) },
+                onOpenDownloadCenter = { viewModel.toggleDownloadCenterSheet(true) },
+                onOpenDiagnosticsCenter = { viewModel.toggleDiagnosticsSheet(true) },
                 onShowToast = { viewModel.showToast(it) },
                 onProgressUpdate = { pos, dur -> viewModel.updateVodWatchProgress(pos, dur) }
             )
@@ -238,9 +263,11 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
                                 searchQuery = searchQuery,
                                 selectedSearchSrcId = selectedSearchSrcId,
                                 vodSources = vodSources,
+                                remoteSyncState = remoteSyncState,
                                 doubanType = doubanType,
                                 doubanTag = doubanTag,
                                 doubanItems = doubanItems,
+                                homeChannelBlocks = homeChannelBlocks,
                                 isLoadingDouban = isLoadingDouban,
                                 doubanError = doubanError,
                                 watchHistory = watchHistory,
@@ -259,6 +286,7 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
                                 onExecuteSearch = { viewModel.executeVodSearch(it) },
                                 onCloseSearchOverlay = { viewModel.closeSearchOverlay() },
                                 onToggleSourceEnabled = { viewModel.toggleVodSourceEnabled(it) },
+                                onSyncRemoteSources = { viewModel.syncRemoteSourcesNow(it, silentToast = false) },
                                 onSelectDoubanType = { viewModel.selectDoubanType(it) },
                                 onSelectDoubanTag = { viewModel.selectDoubanTag(it) },
                                 onRetryDouban = { viewModel.loadDoubanHot() },
@@ -268,7 +296,13 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
                                 onOpenFavoriteVod = { viewModel.openFavoriteVod(it) },
                                 onClearWatchHistory = { viewModel.clearAllWatchHistory() },
                                 onClearRecentSearches = { viewModel.clearRecentVodSearches() },
-                                onReloadLatest = { viewModel.loadLatestVod(it) }
+                                onReloadLatest = { viewModel.loadLatestVod(it) },
+                                onJumpToCategoryChannel = { viewModel.jumpToCategoryChannel(it) },
+                                downloadCount = videoDownloads.size,
+                                hasNewUpdate = appUpdateResult.hasNewAppVersion,
+                                onOpenUpdateCenter = { viewModel.toggleUpdateSheet(true) },
+                                onOpenDiagnosticsCenter = { viewModel.toggleDiagnosticsSheet(true) },
+                                onOpenDownloadCenter = { viewModel.toggleDownloadCenterSheet(true) }
                             )
                         }
                         MainTab.CATEGORY -> {
@@ -336,6 +370,60 @@ fun MovieHubApp(viewModel: MovieHubViewModel = viewModel()) {
                 onSeek = { viewModel.seekMusicTo(it) },
                 onCycleMode = { viewModel.cycleMusicPlayMode() },
                 onSelectQuality = { viewModel.setMusicPreferredQuality(it) }
+            )
+        }
+
+        if (showDiagnosticsSheet) {
+            SourceDiagnosticsModalSheet(
+                vodSources = vodSources,
+                remoteSyncState = remoteSyncState,
+                healthResults = healthResults,
+                isRunningDiagnostics = isRunningDiagnostics,
+                diagnosticLogs = diagnosticLogs,
+                probeInspection = probeInspection,
+                isProbingCustomSource = isProbingCustomSource,
+                crossChannelQueryResult = crossChannelQueryResult,
+                isCrossChannelSearching = isCrossChannelSearching,
+                onDismiss = { viewModel.toggleDiagnosticsSheet(false) },
+                onRunFullDiagnostics = { viewModel.runFullChannelDiagnostics() },
+                onSyncRemoteSources = { viewModel.syncRemoteSourcesNow(it, silentToast = false) },
+                onToggleVodSource = { viewModel.toggleVodSourceEnabled(it) },
+                onClearDiagnosticLogs = { viewModel.clearDiagnosticLogs() },
+                onProbeCustomApi = { api, kw -> viewModel.probeCustomSourceApi(api, kw) },
+                onAddProbedVodSource = { id, name, api -> viewModel.addProbedVodSource(id, name, api) },
+                onRunCrossChannelSearch = { kw -> viewModel.runCrossChannelSearch(kw) },
+                onShowToast = { viewModel.showToast(it) }
+            )
+        }
+
+        if (showDownloadCenterSheet) {
+            VideoDownloadCenterModalSheet(
+                downloads = videoDownloads,
+                onDismiss = { viewModel.toggleDownloadCenterSheet(false) },
+                onPlayOfflineTask = { viewModel.playOfflineDownload(it) },
+                onPauseTask = { viewModel.pauseVideoDownload(it) },
+                onResumeTask = { viewModel.resumeVideoDownload(it) },
+                onDeleteTask = { viewModel.deleteVideoDownload(it) },
+                onClearAllTasks = { viewModel.clearAllVideoDownloads() }
+            )
+        }
+
+        if (showUpdateSheet) {
+            AppUpdateCenterModalSheet(
+                updateResult = appUpdateResult,
+                isCheckingUpdate = isCheckingUpdate,
+                isPublishingToGitHub = isPublishingToGitHub,
+                remoteSyncState = remoteSyncState,
+                onCheckUpdateNow = { customUrl -> viewModel.checkAppUpdateNow(customUrl, silent = false) },
+                onSyncRemoteSourcesNow = { viewModel.syncRemoteSourcesNow(null, silentToast = false) },
+                onPublishSourcesToGitHub = { token, repo ->
+                    viewModel.publishCurrentSourcesToGitHub(token, repo)
+                },
+                onPublishVersionToGitHub = { token, repo, verName, verCode, apkUrl, log ->
+                    viewModel.publishVersionJsonToGitHub(token, repo, verName, verCode, apkUrl, log)
+                },
+                onShowToast = { viewModel.showToast(it) },
+                onDismiss = { viewModel.toggleUpdateSheet(false) }
             )
         }
 

@@ -1,0 +1,114 @@
+{
+  "version": "1.2.0",
+  "updatedAt": "2026-11-09",
+  "description": "观影中心 (MovieHub) 独立源站配置文件",
+  "vodSources": [
+    {
+      "id": "ffzy",
+      "name": "非凡",
+      "api": "http://ffzy5.tv/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "bfzy",
+      "name": "暴风",
+      "api": "https://bfzyapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "lzi",
+      "name": "量子",
+      "api": "https://cj.lziapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "tyyszy",
+      "name": "天涯",
+      "api": "https://tyyszy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "zy360",
+      "name": "360",
+      "api": "https://360zy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "wolong",
+      "name": "卧龙",
+      "api": "https://wolongzyw.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "jisu",
+      "name": "极速",
+      "api": "https://jszyapi.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "dbzy",
+      "name": "豆瓣源",
+      "api": "https://dbzy.tv/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "mozhuazy",
+      "name": "魔爪",
+      "api": "https://mozhuazy.com/api.php/provide/vod/",
+      "enabled": true
+    },
+    {
+      "id": "mdzy",
+      "name": "魔都",
+      "api": "https://www.mdzyapi.com/api.php/provide/vod/",
+      "enabled": true
+    }
+  ],
+  "liveM3uUrl": "https://raw.githubusercontent.com/berse1kguts-pixel/moviehub/main/cn-tv-tested.m3u",
+  "liveChannels": [
+    {
+      "id": "cctv1",
+      "name": "CCTV-1 综合",
+      "group": "央视频道",
+      "url": "https://live-play.cctvnews.cctv.com/cctv/merge_cctv1.m3u8"
+    },
+    {
+      "id": "cctv5",
+      "name": "CCTV-5 体育",
+      "group": "央视频道",
+      "url": "https://live-play.cctvnews.cctv.com/cctv/merge_cctv5.m3u8"
+    },
+    {
+      "id": "cctv6",
+      "name": "CCTV-6 电影",
+      "group": "央视频道",
+      "url": "https://live-play.cctvnews.cctv.com/cctv/merge_cctv6.m3u8"
+    },
+    {
+      "id": "cctv13",
+      "name": "CCTV-13 新闻",
+      "group": "央视频道",
+      "url": "https://live-play.cctvnews.cctv.com/cctv/merge_cctv13.m3u8"
+    }
+  ],
+  "lxMusicScripts": [
+    {
+      "id": "huibq",
+      "name": "Huibq 音源",
+      "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/render_api.js",
+      "enabled": true
+    },
+    {
+      "id": "lx_official_mirror",
+      "name": "洛雪聚合镜像源",
+      "url": "https://fastly.jsdelivr.net/gh/pdone/lx-music-source/sixyin/latest.js",
+      "enabled": true
+    },
+    {
+      "id": "ikun_source",
+      "name": "iKun 公益无损源",
+      "url": "https://fastly.jsdelivr.net/gh/ikun0014/lx-music-source/dist/lx-music-source.js",
+      "enabled": true
+    }
+  ]
+}

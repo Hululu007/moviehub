@@ -1,0 +1,12 @@
+{
+  "versionName": "2.5.0",
+  "versionCode": 25,
+  "forceUpdate": false,
+  "title": "观影中心 v2.5.0 正式版",
+  "publishedAt": "2026-11-10",
+  "apkUrl": "https://github.com/berse1kguts-pixel/moviehub/releases/latest/download/moviehub-release.apk",
+  "mirrorUrl": "https://ghp.ci/https://github.com/berse1kguts-pixel/moviehub/releases/latest/download/moviehub-release.apk",
+  "releasePageUrl": "https://github.com/berse1kguts-pixel/moviehub/releases",
+  "sourceVersion": "2026.11.10",
+  "changelog": "1. 专属五大频道分区：电影、电视剧、动漫、纪录片、短剧并发秒开\n2. 播放器升级：支持自动/4K/1080P/720P/480P清晰度切换、直屏短剧竖屏全屏自适应、右滑极速返回\n3. 新增检查更新与手机端一键直推 GitHub 云端同步中心"
+}
