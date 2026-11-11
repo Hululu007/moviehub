@@ -185,7 +185,7 @@ public class SourceQueryService {
     /** 内置默认源（与 data.sql 保持一致），用于数据库不可用/空表时兜底。 */
     public static final class DefaultSources {
 
-        static final String DEFAULT_VERSION = "2.0.0";
+        public static final String DEFAULT_VERSION = "2.0.0";
 
         private static final List<VodSourceDto> VOD = new ArrayList<>(List.of(
                 new VodSourceDto("ffzy", "非凡", "http://ffzy5.tv/api.php/provide/vod/", true, 0, "ONLINE"),
@@ -227,6 +227,19 @@ public class SourceQueryService {
         static SourceBundleDto fallback(String version, String updatedAt, String origin) {
             return new SourceBundleDto(
                     version, updatedAt, new ArrayList<>(VOD), new ArrayList<>(LIVE), new ArrayList<>(SCRIPTS), origin, 0);
+        }
+
+        /** 供启动时播种使用；返回只读副本，避免调用方修改共享常量。 */
+        public static List<VodSourceDto> vod() {
+            return List.copyOf(VOD);
+        }
+
+        public static List<LiveChannelDto> live() {
+            return List.copyOf(LIVE);
+        }
+
+        public static List<MusicScriptDto> scripts() {
+            return List.copyOf(SCRIPTS);
         }
     }
 

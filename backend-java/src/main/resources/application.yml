@@ -19,11 +19,8 @@ spring:
       max-lifetime: 600000
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-      # 数据库不可用时仍允许应用启动，API 回退到内置默认源
-      continue-on-error: true
+      # 自定义 DatabaseInitializer 在启动后执行初始化，数据库暂时不可达时应用仍可启动并由 API 回退默认源
+      mode: never
 
 moviehub:
   # 未配置密钥时禁用全部管理写接口，避免公开服务使用可猜测默认口令
