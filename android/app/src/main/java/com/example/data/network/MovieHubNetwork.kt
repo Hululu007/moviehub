@@ -1605,8 +1605,15 @@ object MovieHubNetwork {
 
     /* ─────────────────── 7. 远程云端源站在线同步与节点测速 ─────────────────── */
 
-    const val DEFAULT_REMOTE_SOURCE_URL =
+    /** 自建源站（Render + TiDB），运维后台改的源在这里实时生效。 */
+    const val PRIMARY_REMOTE_SOURCE_URL =
+        "https://moviehub-source-server.onrender.com/api/sources.json"
+
+    /** GitHub Raw 备选：自建源站不可达时回退，保证客户端不至于无源可用。 */
+    const val FALLBACK_REMOTE_SOURCE_URL =
         "https://raw.githubusercontent.com/berse1kguts-pixel/moviehub/main/sources.json"
+
+    const val DEFAULT_REMOTE_SOURCE_URL = PRIMARY_REMOTE_SOURCE_URL
 
     private const val FALLBACK_REPO_SERVER_JS_URL =
         "https://raw.githubusercontent.com/berse1kguts-pixel/moviehub/main/moviehub/server.js"
@@ -1627,6 +1634,10 @@ object MovieHubNetwork {
     private fun expandMirrorCandidates(rawUrl: String): List<String> {
         val trimmed = rawUrl.trim()
         if (trimmed.isEmpty()) return emptyList()
+        // 自建源站优先，失败再回退到 GitHub Raw 及其镜像
+        if (trimmed.startsWith(PRIMARY_REMOTE_SOURCE_URL)) {
+            return listOf(trimmed, FALLBACK_REMOTE_SOURCE_URL).distinct()
+        }
         if (trimmed.startsWith("https://raw.githubusercontent.com/")) {
             // Convert https://raw.githubusercontent.com/owner/repo/branch/path
             // into multiple domestic CDN mirrors + jsDelivr + direct GitHub Raw
@@ -2215,7 +2226,10 @@ object MovieHubNetwork {
 
     const val CURRENT_APP_VERSION_NAME = "2.5.0"
     const val CURRENT_APP_VERSION_CODE = 25
+    /** 自建源站的更新清单，后台「版本更新」页保存后即时生效。 */
     const val DEFAULT_UPDATE_MANIFEST_URL =
+        "https://moviehub-source-server.onrender.com/api/version.json"
+    const val FALLBACK_UPDATE_MANIFEST_URL =
         "https://raw.githubusercontent.com/berse1kguts-pixel/moviehub/main/version.json"
     const val JSDELIVR_UPDATE_MANIFEST_URL =
         "https://cdn.jsdelivr.net/gh/berse1kguts-pixel/moviehub@main/version.json"
@@ -2273,8 +2287,10 @@ object MovieHubNetwork {
             if (customManifestUrl.isNotBlank() && customManifestUrl != DEFAULT_UPDATE_MANIFEST_URL) {
                 add(customManifestUrl.trim())
             }
-            add(JSDELIVR_UPDATE_MANIFEST_URL)
+            // 自建源站优先，其余为备选镜像
             add(DEFAULT_UPDATE_MANIFEST_URL)
+            add(FALLBACK_UPDATE_MANIFEST_URL)
+            add(JSDELIVR_UPDATE_MANIFEST_URL)
         }.distinct()
 
         // 1. Try version.json manifest first (supports custom update server or GitHub repo version.json)
