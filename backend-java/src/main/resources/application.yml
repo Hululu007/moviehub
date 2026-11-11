@@ -26,7 +26,8 @@ spring:
       continue-on-error: true
 
 moviehub:
-  admin-token: ${ADMIN_TOKEN:admin123}
+  # 未配置密钥时禁用全部管理写接口，避免公开服务使用可猜测默认口令
+  admin-token: ${ADMIN_TOKEN:}
   auto-speed-test-cron: "0 */10 * * * *"
   # 允许跨域只读访问的前端来源，逗号分隔；* 表示全部
   allowed-origins: ${ALLOWED_ORIGINS:*}
