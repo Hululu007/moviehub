@@ -1,17 +1,16 @@
 workflows:
   android-workflow:
     name: Build MovieHub APK
-    max_build_duration: 30
+    max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      java: 21
+      java: 17
     scripts:
-      - name: Setup environment and keystore
+      - name: Prepare keystore and local.properties
         script: |
           cd android
-          if [ ! -f .env ]; then
-            cp .env.example .env || touch .env
-          fi
+
+          # 生成调试签名（对应 app/build.gradle.kts 中的 debugConfig）
           if [ ! -f debug.keystore ]; then
             keytool -genkeypair -v \
               -keystore debug.keystore \
@@ -23,14 +22,24 @@ workflows:
               -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
+
+          # 指向 Codemagic 提供的 Android SDK
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-      - name: Build Android Debug APK
+
+          # Secrets Gradle Plugin 需要 .env 文件存在
+          if [ ! -f .env ]; then
+            cp .env.example .env 2>/dev/null || touch .env
+          fi
+
+      - name: Build Debug APK
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --no-configuration-cache
+
     artifacts:
-      - android/app/build/outputs/apk/**/*.apk
+      - android/app/build/outputs/apk/debug/*.apk
+
     publishing:
       email:
         recipients:
