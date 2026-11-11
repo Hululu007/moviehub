@@ -25,8 +25,11 @@ spring:
       mode: never
 
 moviehub:
-  # 未配置密钥时禁用全部管理写接口，避免公开服务使用可猜测默认口令
-  admin-token: ${ADMIN_TOKEN:}
+  # 运维后台登录。未配置 admin-password 时登录与写接口整体禁用，避免公开服务出现默认口令。
+  admin-user: ${ADMIN_USER:admin}
+  admin-password: ${ADMIN_PASSWORD:}
+  # 会话有效期（小时），页面上有操作会自动续期
+  admin-session-hours: ${ADMIN_SESSION_HOURS:12}
   auto-speed-test-cron: "0 */10 * * * *"
   # 允许跨域只读访问的前端来源，逗号分隔；* 表示全部
   allowed-origins: ${ALLOWED_ORIGINS:*}

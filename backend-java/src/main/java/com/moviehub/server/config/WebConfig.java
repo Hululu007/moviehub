@@ -23,10 +23,13 @@ public class WebConfig implements WebMvcConfigurer {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
+        // 登录会话依赖 Cookie，allowCredentials 为 true 时不能用 "*"，
+        // 必须用 allowedOriginPatterns（它会为每个来源回显具体 Origin）
         registry.addMapping("/**")
-                .allowedOrigins(origins.isEmpty() ? new String[] {"*"} : origins.toArray(new String[0]))
+                .allowedOriginPatterns(origins.isEmpty() ? new String[] {"*"} : origins.toArray(new String[0]))
                 .allowedMethods("GET", "POST", "OPTIONS")
-                .allowedHeaders("Content-Type", "X-Admin-Key")
+                .allowedHeaders("Content-Type", "Accept")
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 }

@@ -4,11 +4,11 @@ import com.moviehub.server.dto.LiveChannelDto;
 import com.moviehub.server.dto.MusicScriptDto;
 import com.moviehub.server.dto.SourceBundleDto;
 import com.moviehub.server.dto.VodSourceDto;
+import com.moviehub.server.service.AdminAuthService;
 import com.moviehub.server.service.SourceProbeService;
 import com.moviehub.server.service.SourceQueryService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,8 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 运维写接口。所有 {@code /api/admin/**} 请求必须携带与 {@code moviehub.admin-token}
- * 一致的 {@code X-Admin-Key} 头。
+ * 运维写接口。所有 {@code /api/admin/**} 请求必须持有登录会话（见 {@link AdminAuthService}）。
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -28,30 +27,25 @@ public class AdminController {
 
     private final SourceQueryService query;
     private final SourceProbeService probe;
-    private final String adminToken;
+    private final AdminAuthService auth;
 
     public AdminController(
             SourceQueryService query,
             SourceProbeService probe,
-            @Value("${moviehub.admin-token:}") String adminToken) {
+            AdminAuthService auth) {
         this.query = query;
         this.probe = probe;
-        this.adminToken = adminToken == null ? "" : adminToken.trim();
+        this.auth = auth;
     }
 
-    /** 未配置 ADMIN_TOKEN 时拒绝所有写操作，避免公开部署被直接改写。 */
     private boolean authorized(HttpServletRequest request) {
-        if (adminToken.isEmpty()) {
-            return false;
-        }
-        String provided = request.getHeader("X-Admin-Key");
-        return provided != null && provided.equals(adminToken);
+        return auth.isAuthenticated(request);
     }
 
     private ResponseEntity<Map<String, Object>> unauthorized() {
-        String reason = adminToken.isEmpty()
-                ? "服务端未配置 ADMIN_TOKEN，写接口已禁用"
-                : "管理密钥 (X-Admin-Key) 不正确";
+        String reason = auth.isConfigured()
+                ? "登录状态已失效，请重新登录"
+                : "服务端未配置 ADMIN_PASSWORD，写接口已禁用";
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "error", reason));
     }
 
@@ -112,7 +106,7 @@ public class AdminController {
     public Map<String, Object> adminHealth(HttpServletRequest request) {
         return Map.of(
                 "ok", authorized(request),
-                "adminTokenConfigured", !adminToken.isEmpty(),
+                "loginConfigured", auth.isConfigured(),
                 "db", query.stats());
     }
 
