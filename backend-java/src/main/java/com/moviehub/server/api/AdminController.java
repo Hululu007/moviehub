@@ -3,6 +3,7 @@ package com.moviehub.server.api;
 import com.moviehub.server.dto.LiveChannelDto;
 import com.moviehub.server.dto.MusicScriptDto;
 import com.moviehub.server.dto.SourceBundleDto;
+import com.moviehub.server.dto.VersionDto;
 import com.moviehub.server.dto.VodSourceDto;
 import com.moviehub.server.service.AdminAuthService;
 import com.moviehub.server.service.SourceProbeService;
@@ -91,6 +92,41 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .body(Map.of("ok", false, "error", "写入失败: " + e.getMessage()));
         }
+    }
+
+    /** 保存客户端更新清单，写入 app_meta 的 app_* 键，客户端下次检查更新即可读到。 */
+    @PostMapping("/version")
+    public ResponseEntity<Map<String, Object>> saveVersion(
+            @RequestBody VersionDto v, HttpServletRequest request) {
+        if (!authorized(request)) {
+            return unauthorized();
+        }
+        if (v == null || v.versionName() == null || v.versionName().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "error", "版本号不能为空"));
+        }
+        if (v.versionCode() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "error", "versionCode 必须大于 0"));
+        }
+        try {
+            query.writeMeta("app_version_name", v.versionName().trim());
+            query.writeMeta("app_version_code", String.valueOf(v.versionCode()));
+            query.writeMeta("force_update", String.valueOf(v.forceUpdate()));
+            query.writeMeta("release_title", orEmpty(v.title()));
+            query.writeMeta("published_at", orEmpty(v.publishedAt()));
+            query.writeMeta("apk_url", orEmpty(v.apkUrl()));
+            query.writeMeta("mirror_url", orEmpty(v.mirrorUrl()));
+            query.writeMeta("release_page_url", orEmpty(v.releasePageUrl()));
+            query.writeMeta("changelog", orEmpty(v.changelog()));
+            return ResponseEntity.ok(Map.of(
+                    "ok", true, "versionName", v.versionName(), "versionCode", v.versionCode()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("ok", false, "error", "保存失败: " + e.getMessage()));
+        }
+    }
+
+    private static String orEmpty(String s) {
+        return s == null ? "" : s;
     }
 
     @PostMapping("/probe")
