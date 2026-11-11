@@ -2,10 +2,10 @@ workflows:
   android-workflow:
     name: Build MovieHub APK
     max_build_duration: 60
-    # Android 构建不需要 macOS；linux 是免费计划可用的标准实例。
-    # linux_x2 / mac_mini_m2 等更高规格需要付费计划，会报
+    # Codemagic 免费额度只覆盖 mac_mini_m2（每月 500 分钟）。
+    # linux / linux_x2 虽便宜，但不在免费计划内，会报
     # "The selected instance type is not available with the current billing plan"。
-    instance_type: linux
+    instance_type: mac_mini_m2
     environment:
       java: 17
       groups:
