@@ -2,7 +2,8 @@ workflows:
   android-workflow:
     name: Build MovieHub APK
     max_build_duration: 60
-    instance_type: mac_mini_m2
+    # Android 构建不需要 macOS，Linux 实例便宜得多（$0.015/min vs $0.038–0.095/min）
+    instance_type: linux_x2
     environment:
       java: 17
     scripts:
