@@ -2,16 +2,18 @@ workflows:
   android-workflow:
     name: Build MovieHub APK
     max_build_duration: 60
-    # Android 构建不需要 macOS，Linux 实例便宜得多（$0.015/min vs $0.038–0.095/min）
+    # Android 构建不需要 macOS，Linux 实例更便宜。
+    # 免费账号若提示实例不可用，把 instance_type 改成 linux。
     instance_type: linux_x2
     environment:
       java: 17
+      groups:
+        - supabase_s3          # 在 Codemagic 创建变量组，放入 S3_ENDPOINT 等
     scripts:
       - name: Prepare keystore and local.properties
         script: |
           cd android
 
-          # 生成调试签名（对应 app/build.gradle.kts 中的 debugConfig）
           if [ ! -f debug.keystore ]; then
             keytool -genkeypair -v \
               -keystore debug.keystore \
@@ -24,10 +26,8 @@ workflows:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-          # 指向 Codemagic 提供的 Android SDK
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-          # Secrets Gradle Plugin 需要 .env 文件存在
           if [ ! -f .env ]; then
             cp .env.example .env 2>/dev/null || touch .env
           fi
@@ -37,9 +37,27 @@ workflows:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --no-configuration-cache
+          ls -lh app/build/outputs/apk/debug/*.apk
+
+      - name: Upload APK to Supabase S3
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+
+          APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts | head -1)
+          CODE=$(grep -oP 'versionCode = \K[0-9]+' android/app/build.gradle.kts | head -1)
+          OBJ="moviehub/moviehub-v${VERSION}-${CODE}.apk"
+
+          python3 scripts/upload_apk_to_s3.py "$APK" "$OBJ" | tee /tmp/upload.log
+
+          PUBLIC_URL=$(grep -oP 'PUBLIC_URL=\K.*' /tmp/upload.log)
+          echo "===== APK 下载地址 ====="
+          echo "$PUBLIC_URL"
 
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
+      - /tmp/upload.log
 
     publishing:
       email:

@@ -1,0 +1,7 @@
+# 在 Codemagic → Environment variables 里创建变量组 supabase_s3，逐项填入
+# 全部勾选 Secure，不要提交真实值到仓库
+export S3_ENDPOINT="https://<project-ref>.storage.supabase.co/storage/v1/s3"
+export S3_REGION="ap-southeast-2"
+export S3_BUCKET="anakin-files"
+export S3_ACCESS_KEY="<access-key>"
+export S3_SECRET_KEY="<secret-key>"
