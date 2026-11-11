@@ -1,0 +1,38 @@
+# Render Blueprint：MovieHub 源站后端（Java + TiDB Cloud Serverless）
+#
+# 使用方式：
+#   1. Render Dashboard → New → Blueprint → 选择 berse1kguts-pixel/moviehub 仓库
+#   2. 部署时在面板填写 MYSQL_USER / MYSQL_PASSWORD（Vault 中 mymem / TiDB Cloud Serverless）
+#   3. 部署完成后把服务域名同步到 Android 客户端的候选源地址
+#
+# 注意：render.yaml 里只写非敏感值；密码等一律用 sync: false 交给面板注入。
+
+services:
+  - type: web
+    name: moviehub-source-server
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend-java/Dockerfile
+    dockerContext: ./backend-java
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: MYSQL_HOST
+        value: gateway01.ap-southeast-1.prod.aws.tidbcloud.com
+      - key: MYSQL_PORT
+        value: "4000"
+      - key: MYSQL_DB
+        value: moviehub
+      - key: MYSQL_SSL_MODE
+        value: VERIFY_IDENTITY
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"

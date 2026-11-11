@@ -1,25 +1,41 @@
 server:
-  port: ${SERVER_PORT:8080}
+  # Render 只注入 PORT；保留 SERVER_PORT 兼容本地/其他平台
+  port: ${PORT:${SERVER_PORT:8080}}
 
 spring:
   application:
     name: moviehub-source-server
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:moviehub}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    # TiDB Cloud Serverless 必须走 TLS；库需提前创建（TiDB 不允许 createDatabaseIfNotExist）
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:moviehub}?useUnicode=true&characterEncoding=utf8&sslMode=${MYSQL_SSL_MODE:PREFERRED}&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&connectTimeout=10000&socketTimeout=30000
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root123456}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 16
-      minimum-idle: 4
+      maximum-pool-size: ${MYSQL_POOL_SIZE:8}
+      minimum-idle: 2
       connection-timeout: 10000
+      validation-timeout: 5000
+      max-lifetime: 600000
   sql:
     init:
       mode: always
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
+      # 数据库不可用时仍允许应用启动，API 回退到内置默认源
       continue-on-error: true
 
 moviehub:
   admin-token: ${ADMIN_TOKEN:admin123}
   auto-speed-test-cron: "0 */10 * * * *"
+  # 允许跨域只读访问的前端来源，逗号分隔；* 表示全部
+  allowed-origins: ${ALLOWED_ORIGINS:*}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
