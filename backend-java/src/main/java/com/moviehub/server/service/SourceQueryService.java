@@ -157,11 +157,22 @@ public class SourceQueryService {
                 latencyMs, healthStatus, sourceKey);
     }
 
-    /** 每次写入后推进 bundle_version 的时间戳部分，便于客户端感知变更。 */
+    /**
+     * 每次写入后刷新 bundle_version，便于客户端判断远端是否有变更。
+     *
+     * <p>形如 {@code 2.0.0.20261111}：取基础版本的 major.minor.patch 前缀再拼当天日期，
+     * 同一天多次保存只更新到日粒度。
+     */
     private void touchBundleVersion() {
         String base = readMeta("bundle_version", DefaultSources.DEFAULT_VERSION);
-        String datePart = base.length() >= 5 ? base.substring(0, 5) : DefaultSources.DEFAULT_VERSION;
-        writeMeta("bundle_version", datePart + now().substring(0, 10));
+        // 去掉此前追加的日期后缀，只保留 major.minor.patch
+        String semver = base.split("\\.").length > 3
+                ? String.join(".", base.split("\\.")[0], base.split("\\.")[1], base.split("\\.")[2])
+                : base;
+        if (semver.length() < 5 || !semver.matches("\\d+\\.\\d+\\.\\d+.*")) {
+            semver = DefaultSources.DEFAULT_VERSION;
+        }
+        writeMeta("bundle_version", semver + "." + now().substring(0, 10).replace("-", ""));
     }
 
     private String latestTimestamp() {

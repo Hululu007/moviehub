@@ -18,7 +18,8 @@ public class RootController {
         return Map.of("status", "UP");
     }
 
-    @GetMapping("/")
+    /** 根路径由 {@code static/index.html} 提供运维页面，接口说明放在 {@code /api}。 */
+    @GetMapping("/api")
     public Map<String, Object> index() {
         return Map.of(
                 "service", "moviehub-source-server",

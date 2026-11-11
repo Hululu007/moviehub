@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MovieHub 源站运维</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14181d;
+    --panel-2: #1a2028;
+    --line: #262d36;
+    --text: #e8edf2;
+    --muted: #8b98a8;
+    --accent: #ff7a18;
+    --ok: #35c46a;
+    --warn: #e8a33d;
+    --bad: #e2504b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding-bottom: 18px; border-bottom: 1px solid var(--line); margin-bottom: 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .brand .dot { background: var(--accent); box-shadow: 0 0 12px rgba(255,122,24,.7); }
+  .spacer { flex: 1; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+  }
+  .badge.ok { color: var(--ok); border-color: rgba(53,196,106,.35); background: rgba(53,196,106,.08); }
+  .badge.warn { color: var(--warn); border-color: rgba(232,163,61,.35); background: rgba(232,163,61,.08); }
+  .badge.bad { color: var(--bad); border-color: rgba(226,80,75,.35); background: rgba(226,80,75,.08); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .card {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+  }
+  .card .k { font-size: 12px; color: var(--muted); letter-spacing: .4px; }
+  .card .v { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .card .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  input[type=text], input[type=password], input[type=url] {
+    background: #0f1318; border: 1px solid var(--line); color: var(--text);
+    border-radius: 9px; padding: 8px 11px; font: inherit; outline: none; min-width: 0;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: #5c6875; }
+
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 14px; font: inherit; font-weight: 600;
+    cursor: pointer; transition: .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #1a1005; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.1); color: #1a1005; }
+  button.ghost { background: transparent; }
+  button.sm { padding: 4px 10px; font-size: 12px; }
+
+  section { margin-bottom: 30px; }
+  h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2 .count { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+  .tablewrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { background: var(--panel-2); font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.015); }
+  td input[type=text], td input[type=url] { width: 100%; background: transparent; border-color: transparent; padding: 5px 7px; }
+  td input:hover { border-color: var(--line); }
+  td input:focus { border-color: var(--accent); background: #0f1318; }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .name { font-weight: 600; }
+  .empty { padding: 26px; text-align: center; color: var(--muted); }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .pill.online { color: var(--ok); background: rgba(53,196,106,.12); }
+  .pill.slow { color: var(--warn); background: rgba(232,163,61,.12); }
+  .pill.offline { color: var(--bad); background: rgba(226,80,75,.12); }
+  .pill.na { color: var(--muted); background: rgba(139,152,168,.12); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: .25s; z-index: 99; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { border-color: rgba(226,80,75,.5); color: #ffb3b0; }
+
+  .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+  .hint code { background: var(--panel-2); padding: 1px 6px; border-radius: 5px; }
+  @media (max-width: 700px) {
+    .hide-sm { display: none; }
+    .wrap { padding: 16px 12px 70px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span>MovieHub 源站运维</div>
+    <span id="svcBadge" class="badge">检查中…</span>
+    <span id="dbBadge" class="badge">数据库 —</span>
+    <div class="spacer"></div>
+    <input id="token" type="password" placeholder="ADMIN_TOKEN（写操作需要）" style="width:230px" autocomplete="off">
+    <button id="btnRefresh" class="ghost">刷新</button>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="k">点播片源</div><div class="v" id="cVod">—</div></div>
+    <div class="card"><div class="k">直播频道</div><div class="v" id="cLive">—</div></div>
+    <div class="card"><div class="k">音源脚本</div><div class="v" id="cMusic">—</div></div>
+    <div class="card"><div class="k">源版本</div><div class="v" id="cVer" style="font-size:19px">—</div></div>
+    <div class="card"><div class="k">最后更新</div><div class="v" id="cUpd" style="font-size:15px">—</div></div>
+  </div>
+
+  <section>
+    <div class="toolbar">
+      <h2 style="margin:0">点播源 <span class="count" id="vodCount"></span></h2>
+      <div class="spacer"></div>
+      <button id="btnProbeAll" class="sm">全部测速</button>
+      <button id="btnAddVod" class="sm ghost">+ 新增片源</button>
+      <button id="btnSaveVod" class="sm primary">保存片源</button>
+    </div>
+    <p class="hint">点击「测速」会请求服务端对单个源做连通性探测；保存只提交点播源列表。</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:110px">标识</th>
+            <th style="width:150px">名称</th>
+            <th>采集接口</th>
+            <th style="width:80px">启用</th>
+            <th style="width:90px">耗时</th>
+            <th style="width:95px">健康</th>
+            <th style="width:120px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="vodBody"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>直播频道 <span class="count" id="liveCount"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:110px">标识</th>
+            <th style="width:170px">名称</th>
+            <th style="width:110px">分组</th>
+            <th>播放地址</th>
+          </tr>
+        </thead>
+        <tbody id="liveBody"><tr><td colspan="4" class="empty">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>音源脚本 <span class="count" id="musicCount"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:150px">标识</th>
+            <th style="width:180px">名称</th>
+            <th>脚本地址</th>
+          </tr>
+        </thead>
+        <tbody id="musicBody"><tr><td colspan="3" class="empty">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>客户端接入</h2>
+    <p class="hint">
+      在 Android 客户端「云端同步」里填这个地址即可：<br>
+      <code id="feedUrl"></code>
+      　<button class="sm ghost" id="btnCopy">复制</button>
+    </p>
+    <p class="hint">
+      更新清单：<a id="verLink" href="/api/version.json" target="_blank">/api/version.json</a>
+      原始 JSON：<a id="srcLink" href="/api/sources.json" target="_blank">/api/sources.json</a>
+      健康检查：<a href="/healthz" target="_blank">/healthz</a>
+    </p>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { vod: [], live: [], music: [] };
+
+/* ── 工具 ── */
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = 'toast'; }, 2600);
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+function token() { return $('token').value.trim(); }
+function headers(json) {
+  const h = {};
+  if (json) h['Content-Type'] = 'application/json';
+  if (token()) h['X-Admin-Key'] = token();
+  return h;
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  if (!r.ok) {
+    const msg = (data && (data.error || data.message)) || ('HTTP ' + r.status);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+/* ── 渲染 ── */
+function healthPill(h) {
+  const key = (h || '').toUpperCase();
+  if (key === 'ONLINE') return '<span class="pill online">在线</span>';
+  if (key === 'SLOW') return '<span class="pill slow">较慢</span>';
+  if (key === 'OFFLINE') return '<span class="pill offline">离线</span>';
+  return '<span class="pill na">未测</span>';
+}
+
+function renderVod() {
+  const body = $('vodBody');
+  if (!state.vod.length) { body.innerHTML = '<tr><td colspan="7" class="empty">暂无片源</td></tr>'; return; }
+  body.innerHTML = state.vod.map((s, i) => `
+    <tr data-i="${i}">
+      <td><input type="text" class="f-id" value="${esc(s.id)}" placeholder="ffzy"></td>
+      <td><input type="text" class="f-name name" value="${esc(s.name)}" placeholder="非凡"></td>
+      <td><input type="url" class="f-api mono" value="${esc(s.api)}" placeholder="https://.../api.php/provide/vod/"></td>
+      <td style="text-align:center">
+        <input type="checkbox" class="f-enabled" ${s.enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:#ff7a18">
+      </td>
+      <td class="mono">${s.latency ? s.latency + ' ms' : '—'}</td>
+      <td class="f-health">${healthPill(s.health)}</td>
+      <td>
+        <button class="sm ghost act-probe" data-i="${i}">测速</button>
+        <button class="sm ghost act-del" data-i="${i}" title="移除">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderLive() {
+  const body = $('liveBody');
+  if (!state.live.length) { body.innerHTML = '<tr><td colspan="4" class="empty">暂无频道</td></tr>'; return; }
+  body.innerHTML = state.live.map(c => `
+    <tr>
+      <td class="mono">${esc(c.id)}</td>
+      <td class="name">${esc(c.name)}</td>
+      <td>${esc(c.group || '')}</td>
+      <td class="mono" style="word-break:break-all">${esc(c.url)}</td>
+    </tr>`).join('');
+}
+
+function renderMusic() {
+  const body = $('musicBody');
+  if (!state.music.length) { body.innerHTML = '<tr><td colspan="3" class="empty">暂无音源</td></tr>'; return; }
+  body.innerHTML = state.music.map(m => `
+    <tr>
+      <td class="mono">${esc(m.id)}</td>
+      <td class="name">${esc(m.name)}</td>
+      <td class="mono" style="word-break:break-all">${esc(m.url)}</td>
+    </tr>`).join('');
+}
+
+function renderStats(stats) {
+  $('cVod').textContent = stats.vodSources;
+  $('cLive').textContent = stats.liveChannels;
+  $('cMusic').textContent = stats.lxMusicScripts;
+  $('cVer').textContent = stats.version || '—';
+  $('cUpd').textContent = stats.updatedAt || '—';
+
+  $('vodCount').textContent = '共 ' + stats.vodSources + ' 个';
+  $('liveCount').textContent = '共 ' + stats.liveChannels + ' 个';
+  $('musicCount').textContent = '共 ' + stats.lxMusicScripts + ' 个';
+
+  const svc = $('svcBadge');
+  svc.className = 'badge ok';
+  svc.textContent = '服务正常';
+
+  const db = $('dbBadge');
+  if (stats.dbAvailable) {
+    db.className = 'badge ok';
+    db.textContent = '数据库已连接';
+  } else {
+    db.className = 'badge bad';
+    db.textContent = '数据库不可用 · 使用内置默认源';
+  }
+  if (stats.origin !== 'database') {
+    db.className = 'badge warn';
+    db.textContent = '数据来源：' + stats.origin;
+  }
+}
+
+/* ── 数据加载 ── */
+async function load() {
+  try {
+    const [stats, bundle] = await Promise.all([
+      api('/api/stats'),
+      api('/api/sources.json')
+    ]);
+    state.vod = bundle.vodSources || [];
+    state.live = bundle.liveChannels || [];
+    state.music = bundle.lxMusicScripts || [];
+    renderStats(stats);
+    renderVod(); renderLive(); renderMusic();
+  } catch (e) {
+    $('svcBadge').className = 'badge bad';
+    $('svcBadge').textContent = '服务不可达';
+    toast('加载失败：' + e.message, true);
+  }
+}
+
+/* ── 交互 ── */
+function readVodFromDom() {
+  return [...document.querySelectorAll('#vodBody tr[data-i]')].map(tr => ({
+    id: tr.querySelector('.f-id').value.trim(),
+    name: tr.querySelector('.f-name').value.trim(),
+    api: tr.querySelector('.f-api').value.trim(),
+    enabled: tr.querySelector('.f-enabled').checked
+  })).filter(s => s.id && s.api);
+}
+
+async function saveVod() {
+  const vod = readVodFromDom();
+  if (!vod.length) { toast('没有可保存的片源', true); return; }
+  if (!token()) { toast('请先填写 ADMIN_TOKEN', true); $('token').focus(); return; }
+  const btn = $('btnSaveVod');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    await api('/api/admin/sources', {
+      method: 'POST',
+      headers: headers(true),
+      body: JSON.stringify({ version: '', updatedAt: '', vodSources: vod, liveChannels: [], lxMusicScripts: [] })
+    });
+    toast('片源已保存');
+    await load();
+  } catch (e) {
+    toast('保存失败：' + e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '保存片源';
+  }
+}
+
+async function probeOne(index) {
+  const tr = document.querySelector(`#vodBody tr[data-i="${index}"]`);
+  if (!tr) return;
+  const url = tr.querySelector('.f-api').value.trim();
+  if (!url) return;
+  if (!token()) { toast('请先填写 ADMIN_TOKEN', true); return; }
+  const btn = tr.querySelector('.act-probe');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await api('/api/admin/probe?url=' + encodeURIComponent(url), {
+      method: 'POST', headers: headers(false)
+    });
+    if (r.ok) {
+      toast('测速成功 ' + r.latencyMs + ' ms');
+      state.vod[index].latency = r.latencyMs;
+      state.vod[index].health = r.latencyMs > 3000 ? 'SLOW' : 'ONLINE';
+    } else {
+      toast('不可用：' + (r.error || ('HTTP ' + r.status)), true);
+      state.vod[index].latency = r.latencyMs || 0;
+      state.vod[index].health = 'OFFLINE';
+    }
+    renderVod();
+  } catch (e) {
+    toast('测速失败：' + e.message, true);
+    btn.disabled = false; btn.textContent = '测速';
+  }
+}
+
+async function probeAll() {
+  if (!token()) { toast('请先填写 ADMIN_TOKEN', true); $('token').focus(); return; }
+  const btn = $('btnProbeAll');
+  btn.disabled = true; btn.textContent = '测速中…';
+  try {
+    await api('/api/admin/probe-all', { method: 'POST', headers: headers(false) });
+    toast('全量测速完成');
+    await load();
+  } catch (e) {
+    toast('测速失败：' + e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '全部测速';
+  }
+}
+
+/* ── 事件绑定 ── */
+$('btnRefresh').onclick = load;
+$('btnSaveVod').onclick = saveVod;
+$('btnProbeAll').onclick = probeAll;
+$('btnAddVod').onclick = () => {
+  state.vod.push({ id: '', name: '', api: '', enabled: true, latency: 0, health: '' });
+  renderVod();
+  const rows = document.querySelectorAll('#vodBody tr[data-i]');
+  const last = rows[rows.length - 1];
+  if (last) last.querySelector('.f-id').focus();
+};
+$('vodBody').addEventListener('click', (e) => {
+  const probe = e.target.closest('.act-probe');
+  if (probe) { probeOne(Number(probe.dataset.i)); return; }
+  const del = e.target.closest('.act-del');
+  if (del) {
+    const i = Number(del.dataset.i);
+    state.vod.splice(i, 1);
+    renderVod();
+  }
+});
+
+$('token').value = sessionStorage.getItem('moviehub_admin_token') || '';
+$('token').addEventListener('input', () => {
+  sessionStorage.setItem('moviehub_admin_token', $('token').value);
+});
+
+$('feedUrl').textContent = location.origin + '/api/sources.json';
+$('btnCopy').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(location.origin + '/api/sources.json');
+    toast('已复制');
+  } catch { toast('复制失败，请手动选择', true); }
+};
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
