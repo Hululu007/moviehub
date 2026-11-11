@@ -4,7 +4,7 @@ import com.moviehub.server.dto.LiveChannelDto;
 import com.moviehub.server.dto.MusicScriptDto;
 import com.moviehub.server.dto.SourceBundleDto;
 import com.moviehub.server.dto.VodSourceDto;
-import java.sql.Timestamp;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -231,20 +231,21 @@ public class SourceQueryService {
     }
 
     /**
-     * 返回最近一次写入的本地时间。
+     * 返回最近一次写入的时间，已按会话时区（+08:00）格式化。
      *
-     * <p>不用 SQL 的 {@code NOW()}：TiDB 会话默认 UTC，与 {@code serverTimezone} 无关，
-     * 直接展示会差 8 小时。改取表内 {@code updated_at} 列的原始值，这里只负责格式化成本地时区。
+     * <p>必须取字符串而不是 {@link Timestamp}：驱动会把 Timestamp 从会话时区转换到
+     * <b>JVM 默认时区</b>，而 Render 容器是 UTC，转出来会再差 8 小时。
+     * 直接用 {@code DATE_FORMAT} 由数据库格式化，结果与时区转换无关。
      */
     private String latestTimestamp() {
         try {
-            Timestamp ts = jdbc.queryForObject(
-                    "SELECT MAX(updated_at) FROM ("
+            String ts = jdbc.queryForObject(
+                    "SELECT DATE_FORMAT(MAX(updated_at), '%Y-%m-%d %H:%i:%s') FROM ("
                             + "SELECT updated_at FROM vod_source "
                             + "UNION ALL SELECT updated_at FROM live_channel "
                             + "UNION ALL SELECT updated_at FROM music_script) t",
-                    Timestamp.class);
-            return ts == null ? now() : ts.toLocalDateTime().format(TS);
+                    String.class);
+            return ts == null || ts.isBlank() ? now() : ts;
         } catch (Exception e) {
             return now();
         }
