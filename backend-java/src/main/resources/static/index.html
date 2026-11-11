@@ -109,6 +109,35 @@
 
   .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
   .hint code { background: var(--panel-2); padding: 1px 6px; border-radius: 5px; }
+
+  /* 找源指南 */
+  .guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .gcard {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+  }
+  .gtitle { font-weight: 700; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .gtag {
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    background: rgba(255,122,24,.1); border: 1px solid rgba(255,122,24,.25);
+    padding: 1px 8px; border-radius: 999px;
+  }
+  .gtext { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; line-height: 1.7; }
+  .gtext b { color: var(--text); font-weight: 600; }
+  .gcode {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 11.5px; background: #0f1318; border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 5px; color: #c9d4e0; word-break: break-all;
+  }
+  .gkw { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+  .gkw > span { font-size: 11px; color: #5c6875; }
+  .kw {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.03); border: 1px solid var(--line); color: #b8c4d2;
+  }
+  .kw:hover { border-color: var(--accent); color: #fff; }
+  .glist { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.85; }
+  .glist b { color: var(--text); font-weight: 600; }
   @media (max-width: 700px) {
     .hide-sm { display: none; }
     .wrap { padding: 16px 12px 70px; }
@@ -192,6 +221,68 @@
         <tbody id="musicBody"><tr><td colspan="3" class="empty">加载中…</td></tr></tbody>
       </table>
     </div>
+  </section>
+
+  <section>
+    <h2>找源指南 <span class="count">检索方法，不托管任何源</span></h2>
+    <p class="hint">
+      这里只给检索入口和判断方法。点按钮会在新标签页打开对应搜索，结果自行甄别；本站不保存、不镜像任何第三方源。
+    </p>
+
+    <div class="guide">
+      <div class="gcard">
+        <div class="gtitle">① 影视点播源 <span class="gtag">苹果CMS 采集接口</span></div>
+        <p class="gtext">要找的是形如 <code class="gcode">https://站点/api.php/provide/vod/</code> 的接口，不是网页地址。</p>
+        <div class="gkw">
+          <span>检索词</span>
+          <button class="kw" data-kw="苹果CMS 采集站 api.php/provide/vod">苹果CMS 采集站</button>
+          <button class="kw" data-kw="cms采集接口 api.php/provide/vod github">cms采集接口</button>
+          <button class="kw" data-kw="TVBox 多仓 配置 json 采集">TVBox 多仓配置</button>
+          <button class="kw" data-kw="资源站导航 采集接口 大全">采集站导航</button>
+        </div>
+        <p class="gtext"><b>怎么判断能用：</b>浏览器直接打开 <code class="gcode">接口?ac=list&amp;pg=1</code>，返回 JSON 里出现 <code class="gcode">"list"</code> 或 <code class="gcode">"class"</code> 才算通。回到上方表格点「测速」也能验证。</p>
+      </div>
+
+      <div class="gcard">
+        <div class="gtitle">② 电视直播源 <span class="gtag">M3U8 / M3U 播放列表</span></div>
+        <p class="gtext">要找的是频道播放列表或单条直播流地址。</p>
+        <div class="gkw">
+          <span>检索词</span>
+          <button class="kw" data-kw="iptv org 直播源 github m3u">iptv-org 项目</button>
+          <button class="kw" data-kw="IPTV 直播源 m3u 央视 卫视 github">IPTV 源仓库</button>
+          <button class="kw" data-kw="央视 卫视 m3u8 直播地址 汇总">央视卫视 m3u8</button>
+          <button class="kw" data-kw="tvbox live 直播源 配置">TVBox 直播配置</button>
+        </div>
+        <p class="gtext"><b>怎么判断能用：</b>打开地址应返回以 <code class="gcode">#EXTM3U</code> 开头的文本；单条流用播放器试播，能出画面才算数。注意区分「列表地址」和「单条流地址」，填错位置会全组失效。</p>
+      </div>
+
+      <div class="gcard">
+        <div class="gtitle">③ 音乐音源 <span class="gtag">LX / 洛雪 JS 脚本</span></div>
+        <p class="gtext">这类是 JS 脚本地址，失效极快，<b>看最近提交时间比看星标有用</b>。</p>
+        <div class="gkw">
+          <span>检索词</span>
+          <button class="kw" data-kw="lx-music-source github 音源 最新">lx-music-source</button>
+          <button class="kw" data-kw="洛雪音乐 音源 脚本 github 更新">洛雪音源脚本</button>
+          <button class="kw" data-kw="lx music source js 自定义源 2026">自定义源 2026</button>
+        </div>
+        <p class="gtext"><b>怎么判断能用：</b>打开脚本地址应返回 JS 文本（不是 404 页面）；脚本都靠 jsDelivr / GitHub Raw 分发，链接带 <code class="gcode">@latest</code> 或 <code class="gcode">main</code> 的更容易长期有效。</p>
+      </div>
+
+      <div class="gcard">
+        <div class="gtitle">④ 通用检索技巧</div>
+        <ul class="glist">
+          <li><b>搜代码比搜标题准</b>：GitHub 搜索时切到 Code，搜 <code class="gcode">api.php/provide/vod</code>，能直接命中别人维护的源清单。</li>
+          <li><b>按时间排序</b>：这类资源失效快，把结果按「最近更新」排，别按星标。</li>
+          <li><b>看响应头</b>：接口返回 <code class="gcode">text/html</code> 而不是 JSON，基本是被墙或已停用。</li>
+          <li><b>一次只验证一个</b>：新源先在本页临时加一行测速，通过再点保存，避免整组坏掉。</li>
+          <li><b>留意协议</b>：<code class="gcode">http://</code> 源在部分网络会被拦截，优先选 <code class="gcode">https://</code>。</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="hint" style="margin-top:14px">
+      各源的内容版权归属不同，公开分发与自用的法律风险不一样，请自行判断。
+    </p>
   </section>
 
   <section>
@@ -367,7 +458,8 @@ async function saveVod() {
     await api('/api/admin/sources', {
       method: 'POST',
       headers: headers(true),
-      body: JSON.stringify({ version: '', updatedAt: '', vodSources: vod, liveChannels: [], lxMusicScripts: [] })
+      // 只提交点播源，避免清空其他两类源（后端按出现与否区分）
+      body: JSON.stringify({ vodSources: vod })
     });
     toast('片源已保存');
     await load();
@@ -446,6 +538,14 @@ $('vodBody').addEventListener('click', (e) => {
 $('token').value = sessionStorage.getItem('moviehub_admin_token') || '';
 $('token').addEventListener('input', () => {
   sessionStorage.setItem('moviehub_admin_token', $('token').value);
+});
+
+/* 找源指南：点击关键词直接带用户去搜索，不在本站留存任何源 */
+document.querySelectorAll('.kw').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const q = btn.dataset.kw || btn.textContent.trim();
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank', 'noopener');
+  });
 });
 
 $('feedUrl').textContent = location.origin + '/api/sources.json';

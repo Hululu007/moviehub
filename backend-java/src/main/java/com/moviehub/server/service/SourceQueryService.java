@@ -4,6 +4,7 @@ import com.moviehub.server.dto.LiveChannelDto;
 import com.moviehub.server.dto.MusicScriptDto;
 import com.moviehub.server.dto.SourceBundleDto;
 import com.moviehub.server.dto.VodSourceDto;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -150,6 +151,60 @@ public class SourceQueryService {
         return affected;
     }
 
+    public int upsertMusicScripts(List<MusicScriptDto> scripts) {
+        if (scripts == null || scripts.isEmpty()) {
+            return 0;
+        }
+        int affected = 0;
+        for (MusicScriptDto m : scripts) {
+            if (m.id() == null || m.id().isBlank() || m.url() == null || m.url().isBlank()) {
+                continue;
+            }
+            affected += jdbc.update(
+                    "INSERT INTO music_script (script_key, name, script_url, enabled, sort_order) "
+                            + "VALUES (?, ?, ?, ?, 100) "
+                            + "ON DUPLICATE KEY UPDATE name = VALUES(name), script_url = VALUES(script_url), "
+                            + "enabled = VALUES(enabled)",
+                    m.id(), m.name() == null ? m.id() : m.name(), m.url(), m.enabled());
+        }
+        touchBundleVersion();
+        return affected;
+    }
+
+    /**
+     * 删除指定 key 之外的行，实现「保存即同步列表」语义。
+     *
+     * @param keys 需要保留的 key；为空时清空整表
+     * @return 被删除的行数
+     */
+    public int deleteVodSourcesNotIn(List<String> keys) {
+        int removed = keys == null || keys.isEmpty()
+                ? jdbc.update("DELETE FROM vod_source")
+                : jdbc.update(placeholders("DELETE FROM vod_source WHERE source_key NOT IN ", keys), keys.toArray());
+        touchBundleVersion();
+        return removed;
+    }
+
+    public int deleteLiveChannelsNotIn(List<String> keys) {
+        int removed = keys == null || keys.isEmpty()
+                ? jdbc.update("DELETE FROM live_channel")
+                : jdbc.update(placeholders("DELETE FROM live_channel WHERE channel_code NOT IN ", keys), keys.toArray());
+        touchBundleVersion();
+        return removed;
+    }
+
+    public int deleteMusicScriptsNotIn(List<String> keys) {
+        int removed = keys == null || keys.isEmpty()
+                ? jdbc.update("DELETE FROM music_script")
+                : jdbc.update(placeholders("DELETE FROM music_script WHERE script_key NOT IN ", keys), keys.toArray());
+        touchBundleVersion();
+        return removed;
+    }
+
+    private static String placeholders(String prefix, List<String> keys) {
+        return prefix + "(" + String.join(",", java.util.Collections.nCopies(keys.size(), "?")) + ")";
+    }
+
     public void updateProbeResult(String sourceKey, int latencyMs, String healthStatus) {
         jdbc.update(
                 "UPDATE vod_source SET latency_ms = ?, health_status = ?, last_checked_at = NOW() "
@@ -175,11 +230,21 @@ public class SourceQueryService {
         writeMeta("bundle_version", semver + "." + now().substring(0, 10).replace("-", ""));
     }
 
+    /**
+     * 返回最近一次写入的本地时间。
+     *
+     * <p>不用 SQL 的 {@code NOW()}：TiDB 会话默认 UTC，与 {@code serverTimezone} 无关，
+     * 直接展示会差 8 小时。改取表内 {@code updated_at} 列的原始值，这里只负责格式化成本地时区。
+     */
     private String latestTimestamp() {
         try {
-            String ts = jdbc.queryForObject(
-                    "SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')", String.class);
-            return ts == null || ts.isBlank() ? now() : ts;
+            Timestamp ts = jdbc.queryForObject(
+                    "SELECT MAX(updated_at) FROM ("
+                            + "SELECT updated_at FROM vod_source "
+                            + "UNION ALL SELECT updated_at FROM live_channel "
+                            + "UNION ALL SELECT updated_at FROM music_script) t",
+                    Timestamp.class);
+            return ts == null ? now() : ts.toLocalDateTime().format(TS);
         } catch (Exception e) {
             return now();
         }

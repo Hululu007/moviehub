@@ -7,7 +7,9 @@ spring:
     name: moviehub-source-server
   datasource:
     # TiDB Cloud Serverless 必须走 TLS；库需提前创建（TiDB 不允许 createDatabaseIfNotExist）
-    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:moviehub}?useUnicode=true&characterEncoding=utf8&sslMode=${MYSQL_SSL_MODE:PREFERRED}&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&connectTimeout=10000&socketTimeout=30000
+    # connectionTimeZone=Asia/Shanghai + forceConnectionTimeZoneToSession=true：把会话时区设为 +08:00，
+    # 使 CURRENT_TIMESTAMP / NOW() 与 client 绑定参数的时区一致（TiDB 默认会话是 UTC）
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:moviehub}?useUnicode=true&characterEncoding=utf8&sslMode=${MYSQL_SSL_MODE:PREFERRED}&allowPublicKeyRetrieval=true&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&connectTimeout=10000&socketTimeout=30000
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver

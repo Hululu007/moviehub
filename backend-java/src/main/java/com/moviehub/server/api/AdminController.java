@@ -1,6 +1,7 @@
 package com.moviehub.server.api;
 
 import com.moviehub.server.dto.LiveChannelDto;
+import com.moviehub.server.dto.MusicScriptDto;
 import com.moviehub.server.dto.SourceBundleDto;
 import com.moviehub.server.dto.VodSourceDto;
 import com.moviehub.server.service.SourceProbeService;
@@ -54,6 +55,12 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "error", reason));
     }
 
+    /**
+     * 全量保存源配置：提交的列表即最终状态。
+     *
+     * <p>请求体里出现的数组会被写入，未出现的数组保持不动；因此页面可以只提交点播源、
+     * 也可以只提交直播频道或音源脚本。数组中未出现的条目会从库中删除。
+     */
     @PostMapping("/sources")
     public ResponseEntity<Map<String, Object>> saveSources(
             @RequestBody SourceBundleDto body, HttpServletRequest request) {
@@ -61,12 +68,30 @@ public class AdminController {
             return unauthorized();
         }
         try {
-            int vod = query.upsertVodSources(body.vodSources());
-            int live = query.upsertLiveChannels(body.liveChannels());
+            int vod = 0, live = 0, music = 0, removed = 0;
+
+            if (body.vodSources() != null) {
+                vod = query.upsertVodSources(body.vodSources());
+                removed += query.deleteVodSourcesNotIn(
+                        body.vodSources().stream().map(VodSourceDto::id).filter(id -> id != null && !id.isBlank()).toList());
+            }
+            if (body.liveChannels() != null) {
+                live = query.upsertLiveChannels(body.liveChannels());
+                removed += query.deleteLiveChannelsNotIn(
+                        body.liveChannels().stream().map(LiveChannelDto::id).filter(id -> id != null && !id.isBlank()).toList());
+            }
+            if (body.lxMusicScripts() != null) {
+                music = query.upsertMusicScripts(body.lxMusicScripts());
+                removed += query.deleteMusicScriptsNotIn(
+                        body.lxMusicScripts().stream().map(MusicScriptDto::id).filter(id -> id != null && !id.isBlank()).toList());
+            }
+
             return ResponseEntity.ok(Map.of(
                     "ok", true,
                     "vodSources", vod,
                     "liveChannels", live,
+                    "musicScripts", music,
+                    "removed", removed,
                     "version", query.readMeta("bundle_version", "2.0.0")));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
